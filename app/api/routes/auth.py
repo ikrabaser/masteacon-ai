@@ -10,10 +10,14 @@ from app.api.dependencies import (
 )
 from app.models.user import User
 from app.schemas.auth import (
+    EmailVerificationResponse,
     LoginRequest,
     RegisterRequest,
+    ResendVerificationRequest,
+    ResendVerificationResponse,
     TokenResponse,
     UserResponse,
+    VerifyEmailRequest,
 )
 from app.services.auth_protection_service import AuthProtectionService
 from app.services.auth_service import AuthService
@@ -86,12 +90,52 @@ async def register(
             detail="Turnstile verification failed.",
         )
 
-    _, token = await auth_service.register(
+    _, token, _verification_token = await auth_service.register(
         email=payload.email,
         password=payload.password,
     )
 
     return TokenResponse(access_token=token)
+
+
+@router.post(
+    "/resend-verification",
+    response_model=ResendVerificationResponse,
+)
+async def resend_verification(
+    payload: ResendVerificationRequest,
+    http_request: Request,
+    auth_service: AuthService = Depends(get_auth_service),
+    protection: AuthProtectionService = Depends(get_auth_protection_service),
+) -> ResendVerificationResponse:
+    """Request a fresh verification email without exposing account existence."""
+
+    identifier = _client_identifier(http_request)
+
+    await _enforce_rate_limit(
+        protection=protection,
+        action="register",
+        identifier=identifier,
+    )
+
+    await auth_service.resend_verification(payload.email)
+
+    return ResendVerificationResponse()
+
+
+@router.post(
+    "/verify-email",
+    response_model=EmailVerificationResponse,
+)
+async def verify_email(
+    payload: VerifyEmailRequest,
+    auth_service: AuthService = Depends(get_auth_service),
+) -> EmailVerificationResponse:
+    """Verify ownership of the email address for a registered account."""
+
+    await auth_service.verify_email(payload.token)
+
+    return EmailVerificationResponse()
 
 
 @router.post("/login", response_model=TokenResponse)

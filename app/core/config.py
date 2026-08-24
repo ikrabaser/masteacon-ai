@@ -67,6 +67,19 @@ class Settings(BaseSettings):
     turnstile_enabled: bool = False
     turnstile_secret_key: str = ""
 
+    # Email verification
+    email_verification_ttl_minutes: int = 30
+
+    # Verification email delivery
+    email_delivery_enabled: bool = False
+    smtp_host: str = ""
+    smtp_port: int = 587
+    smtp_username: str = ""
+    smtp_password: str = ""
+    smtp_use_tls: bool = True
+    email_from_address: str = ""
+    frontend_base_url: str = "http://localhost:5173"
+
     # Conversation history — bounds how much prior chat context is fed back into
     # the RAG prompt, so a long-running conversation can't grow the prompt without limit.
     conversation_history_max_messages: int = 10

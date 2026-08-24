@@ -12,11 +12,13 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.api.dependencies import (
+    get_auth_protection_service,
     get_auth_service,
     get_chunk_repository,
     get_document_repository,
     get_document_service,
     get_embedding_service,
+    get_turnstile_service,
     get_user_repository,
     get_workspace_repository,
 )
@@ -29,10 +31,12 @@ from app.services.document_service import DocumentService
 from app.services.embedding_service import EmbeddingService
 from app.services.parsing_service import ParsingService
 from tests.fakes import (
+    FakeAuthProtectionService,
     FakeChunkRepository,
     FakeDocumentRepository,
     FakeEmbeddingProvider,
     FakeIndexingDispatcher,
+    FakeTurnstileService,
     FakeUserRepository,
     FakeWorkspaceRepository,
 )
@@ -45,6 +49,8 @@ def client(tmp_path):
     documents = FakeDocumentRepository()
     chunks = FakeChunkRepository()
     settings = get_settings()
+    auth_protection = FakeAuthProtectionService()
+    turnstile = FakeTurnstileService()
 
     indexing_service = DocumentIndexingService(
         document_repository=documents,
@@ -62,6 +68,8 @@ def client(tmp_path):
         max_upload_size_mb=settings.max_upload_size_mb,
     )
 
+    app.dependency_overrides[get_auth_protection_service] = lambda: auth_protection
+    app.dependency_overrides[get_turnstile_service] = lambda: turnstile
     app.dependency_overrides[get_user_repository] = lambda: users
     app.dependency_overrides[get_auth_service] = lambda: AuthService(users, settings)
     app.dependency_overrides[get_workspace_repository] = lambda: workspaces
