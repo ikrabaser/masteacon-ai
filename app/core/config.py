@@ -70,13 +70,11 @@ class Settings(BaseSettings):
     # Email verification
     email_verification_ttl_minutes: int = 30
 
-    # Verification email delivery
+    # Verification email delivery — via the Resend transactional email API
+    # (https://resend.com), a single authenticated HTTPS call, no SMTP/app
+    # passwords involved.
     email_delivery_enabled: bool = False
-    smtp_host: str = ""
-    smtp_port: int = 587
-    smtp_username: str = ""
-    smtp_password: str = ""
-    smtp_use_tls: bool = True
+    resend_api_key: str = ""
     email_from_address: str = ""
     frontend_base_url: str = "http://localhost:5173"
 
