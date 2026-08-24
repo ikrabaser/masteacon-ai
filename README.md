@@ -193,6 +193,9 @@ locally you also need a Celery worker running: `celery -A app.tasks.celery_app w
 | `JWT_ALGORITHM` | JWT signing algorithm | `HS256` |
 | `ACCESS_TOKEN_EXPIRE_MINUTES` | Access token lifetime | `60` |
 | `CORS_ORIGINS` | Comma-separated allowed frontend origins | `http://localhost:5173,http://localhost:3000` |
+| `EMAIL_DELIVERY_ENABLED` | Send verification emails via Resend | `false` |
+| `RESEND_API_KEY` | [Resend](https://resend.com) API key (only needed when the above is `true`) | — |
+| `EMAIL_FROM_ADDRESS` | Sender address, e.g. `Masteacon <onboarding@yourdomain.com>` | — |
 | `CHUNK_SIZE` | Max tokens per chunk | `800` |
 | `CHUNK_OVERLAP` | Token overlap between chunks | `150` |
 | `SEARCH_TOP_K` | Default number of chunks retrieved | `5` |
