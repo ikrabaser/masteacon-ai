@@ -734,7 +734,7 @@
 .masteacon-problem-card {
   padding: 34px;
   border: 1px solid rgba(54, 74, 90, 0.12);
-  border-radius: 22px;
+  border-radius: 24px;
 }
 
 .masteacon-problem-card.without {
@@ -1497,13 +1497,31 @@
   min-height: 260px;
   padding: 28px;
   border: 1px solid rgba(64, 83, 98, 0.12);
-  border-radius: 18px;
-  background: rgba(255, 255, 255, 0.19);
+  border-radius: 24px;
+  background: linear-gradient(
+    to bottom right,
+    rgba(255, 255, 255, 0.32),
+    rgba(255, 255, 255, 0) 60%
+  ),
+  rgba(255, 255, 255, 0.14);
+  box-shadow: 0 1px 2px rgba(16, 32, 51, 0.05);
+  transition: transform 180ms ease, border-color 180ms ease;
+}
+
+.masteacon-audience-grid article:hover {
+  transform: translateY(-3px);
+  border-color: rgba(226, 160, 43, 0.35);
 }
 
 :root[data-theme="dark"] .masteacon-audience-grid article {
-  border-color: rgba(127, 156, 181, 0.12);
-  background: #071521;
+  border-color: rgba(26, 26, 26, 1);
+  background: linear-gradient(
+    to bottom right,
+    rgba(255, 255, 255, 0.06),
+    rgba(255, 255, 255, 0) 60%
+  ),
+  #071521;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
 }
 
 .masteacon-audience-grid article > span {
