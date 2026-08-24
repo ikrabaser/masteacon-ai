@@ -98,14 +98,33 @@ def test_register_rejects_short_password(client: TestClient) -> None:
 
 
 def test_login_returns_access_token_for_valid_credentials(client: TestClient) -> None:
-    client.post("/api/v1/auth/register", json={"email": "alice@example.com", "password": "password123"})
+    class FakeVerifiedLoginAuthService:
+        async def login(self, email: str, password: str):
+            from app.models.user import User
+
+            user = User(
+                id=1,
+                email=email,
+                password_hash="unused",
+                is_active=True,
+                is_email_verified=True,
+            )
+            return user, "verified-login-token"
+
+    app.dependency_overrides[get_auth_service] = (
+        lambda: FakeVerifiedLoginAuthService()
+    )
 
     response = client.post(
-        "/api/v1/auth/login", json={"email": "alice@example.com", "password": "password123"}
+        "/api/v1/auth/login",
+        json={
+            "email": "alice@example.com",
+            "password": "password123",
+        },
     )
 
     assert response.status_code == 200
-    assert response.json()["access_token"]
+    assert response.json()["access_token"] == "verified-login-token"
 
 
 def test_login_rejects_wrong_password(client: TestClient) -> None:
@@ -214,12 +233,21 @@ def test_successful_login_resets_rate_limit(
     client: TestClient,
     auth_protection: FakeAuthProtectionService,
 ) -> None:
-    client.post(
-        "/api/v1/auth/register",
-        json={
-            "email": "alice@example.com",
-            "password": "password123",
-        },
+    class FakeVerifiedLoginAuthService:
+        async def login(self, email: str, password: str):
+            from app.models.user import User
+
+            user = User(
+                id=1,
+                email=email,
+                password_hash="unused",
+                is_active=True,
+                is_email_verified=True,
+            )
+            return user, "verified-login-token"
+
+    app.dependency_overrides[get_auth_service] = (
+        lambda: FakeVerifiedLoginAuthService()
     )
 
     response = client.post(
@@ -289,3 +317,164 @@ def test_register_rejects_failed_turnstile_verification(
     )
 
     assert retry.status_code == 201
+
+
+def test_verify_email_endpoint_returns_success(
+    client: TestClient,
+) -> None:
+    class FakeVerificationAuthService:
+        async def verify_email(self, raw_token: str):
+            assert raw_token == "valid-email-verification-token"
+            return None
+
+    fake_service = FakeVerificationAuthService()
+
+    app.dependency_overrides[get_auth_service] = lambda: fake_service
+
+    response = client.post(
+        "/api/v1/auth/verify-email",
+        json={
+            "token": "valid-email-verification-token",
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "verified": True,
+        "message": "Email verified successfully.",
+    }
+
+
+def test_resend_verification_returns_generic_success(
+    client: TestClient,
+) -> None:
+    class FakeResendAuthService:
+        def __init__(self) -> None:
+            self.calls: list[str] = []
+
+        async def resend_verification(self, email: str) -> None:
+            self.calls.append(email)
+
+    fake_service = FakeResendAuthService()
+    app.dependency_overrides[get_auth_service] = lambda: fake_service
+
+    response = client.post(
+        "/api/v1/auth/resend-verification",
+        json={"email": "alice@example.com"},
+    )
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "message": (
+            "If an eligible account exists for this email, "
+            "a verification message has been sent."
+        )
+    }
+    assert fake_service.calls == ["alice@example.com"]
+
+
+def test_resend_verification_unknown_email_returns_same_response(
+    client: TestClient,
+) -> None:
+    class FakeResendAuthService:
+        async def resend_verification(self, email: str) -> None:
+            assert email == "unknown@example.com"
+            return None
+
+    app.dependency_overrides[get_auth_service] = (
+        lambda: FakeResendAuthService()
+    )
+
+    response = client.post(
+        "/api/v1/auth/resend-verification",
+        json={"email": "unknown@example.com"},
+    )
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "message": (
+            "If an eligible account exists for this email, "
+            "a verification message has been sent."
+        )
+    }
+
+
+def test_resend_verification_verified_account_returns_same_response(
+    client: TestClient,
+) -> None:
+    class FakeResendAuthService:
+        async def resend_verification(self, email: str) -> None:
+            assert email == "already-verified@example.com"
+            return None
+
+    app.dependency_overrides[get_auth_service] = (
+        lambda: FakeResendAuthService()
+    )
+
+    response = client.post(
+        "/api/v1/auth/resend-verification",
+        json={"email": "already-verified@example.com"},
+    )
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "message": (
+            "If an eligible account exists for this email, "
+            "a verification message has been sent."
+        )
+    }
+
+
+def test_resend_verification_returns_429_when_rate_limited(
+    client: TestClient,
+    auth_protection: FakeAuthProtectionService,
+) -> None:
+    class FakeResendAuthService:
+        async def resend_verification(self, email: str) -> None:
+            raise AssertionError(
+                "Service must not run when rate limited."
+            )
+
+    app.dependency_overrides[get_auth_service] = (
+        lambda: FakeResendAuthService()
+    )
+
+    # Resend currently shares the registration abuse-protection bucket.
+    auth_protection.blocked_actions.add("register")
+    auth_protection.retry_after = 90
+
+    response = client.post(
+        "/api/v1/auth/resend-verification",
+        json={"email": "alice@example.com"},
+    )
+
+    assert response.status_code == 429
+    assert response.headers["Retry-After"] == "90"
+    assert response.json()["detail"] == (
+        "Too many authentication attempts. Please try again later."
+    )
+
+
+def test_login_rejects_unverified_account(
+    client: TestClient,
+) -> None:
+    client.post(
+        "/api/v1/auth/register",
+        json={
+            "email": "unverified-login@example.com",
+            "password": "password123",
+        },
+    )
+
+    response = client.post(
+        "/api/v1/auth/login",
+        json={
+            "email": "unverified-login@example.com",
+            "password": "password123",
+        },
+    )
+
+    assert response.status_code == 403
+    assert response.json()["detail"] == (
+        "Please verify your email address before signing in."
+    )

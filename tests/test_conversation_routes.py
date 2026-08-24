@@ -3,12 +3,14 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.api.dependencies import (
+    get_auth_protection_service,
     get_auth_service,
     get_chat_provider,
     get_chunk_repository,
     get_conversation_repository,
     get_embedding_service,
     get_message_repository,
+    get_turnstile_service,
     get_user_repository,
     get_workspace_repository,
 )
@@ -17,12 +19,14 @@ from app.main import app
 from app.services.auth_service import AuthService
 from app.services.embedding_service import EmbeddingService
 from tests.fakes import (
+    FakeAuthProtectionService,
     FakeChatProvider,
     FakeChunkRepository,
     FakeChunkRow,
     FakeConversationRepository,
     FakeEmbeddingProvider,
     FakeMessageRepository,
+    FakeTurnstileService,
     FakeUserRepository,
     FakeWorkspaceRepository,
 )
@@ -38,7 +42,11 @@ def client():
         [FakeChunkRow(1, "doc.txt", 0, "Annual leave is 14 days.", 0.9, workspace_id=1)]
     )
     settings = get_settings()
+    auth_protection = FakeAuthProtectionService()
+    turnstile = FakeTurnstileService()
 
+    app.dependency_overrides[get_auth_protection_service] = lambda: auth_protection
+    app.dependency_overrides[get_turnstile_service] = lambda: turnstile
     app.dependency_overrides[get_user_repository] = lambda: users
     app.dependency_overrides[get_auth_service] = lambda: AuthService(users, settings)
     app.dependency_overrides[get_workspace_repository] = lambda: workspaces

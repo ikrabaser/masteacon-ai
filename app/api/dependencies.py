@@ -27,6 +27,8 @@ from app.services.turnstile_service import TurnstileService
 from app.services.conversation_service import ConversationService
 from app.services.document_service import DocumentService
 from app.services.embedding_service import EmbeddingService
+from app.services.email_verification_service import EmailVerificationService
+from app.services.email_service import EmailService
 from app.services.agent_service import AgentService
 from app.services.indexing_dispatcher import IndexingDispatcher
 from app.services.rag_service import RagService
@@ -57,11 +59,34 @@ def get_user_repository(session: AsyncSession = Depends(get_db)) -> UserReposito
     return UserRepository(session)
 
 
+def get_email_service(
+    settings: Settings = Depends(get_settings),
+) -> EmailService:
+    return EmailService(settings=settings)
+
+
+def get_email_verification_service(
+    settings: Settings = Depends(get_settings),
+) -> EmailVerificationService:
+    return EmailVerificationService(
+        ttl_minutes=settings.email_verification_ttl_minutes,
+    )
+
+
 def get_auth_service(
     settings: Settings = Depends(get_settings),
     user_repository: UserRepository = Depends(get_user_repository),
+    email_verification_service: EmailVerificationService = Depends(
+        get_email_verification_service
+    ),
+    email_service: EmailService = Depends(get_email_service),
 ) -> AuthService:
-    return AuthService(user_repository=user_repository, settings=settings)
+    return AuthService(
+        user_repository=user_repository,
+        settings=settings,
+        email_verification_service=email_verification_service,
+        email_service=email_service,
+    )
 
 
 def get_auth_protection_service(

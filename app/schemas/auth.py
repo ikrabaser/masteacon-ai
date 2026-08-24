@@ -39,3 +39,31 @@ class UserResponse(BaseModel):
     is_active: bool
     created_at: datetime
     updated_at: datetime
+
+
+class VerifyEmailRequest(BaseModel):
+    """Request body for POST /api/v1/auth/verify-email."""
+
+    token: str = Field(min_length=20, max_length=512)
+
+
+class EmailVerificationResponse(BaseModel):
+    """Response returned after successful email verification."""
+
+    verified: bool = True
+    message: str = "Email verified successfully."
+
+
+class ResendVerificationRequest(BaseModel):
+    """Request a fresh email-verification message."""
+
+    email: EmailStr
+
+
+class ResendVerificationResponse(BaseModel):
+    """Enumeration-safe response for verification email requests."""
+
+    message: str = (
+        "If an eligible account exists for this email, "
+        "a verification message has been sent."
+    )

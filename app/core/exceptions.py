@@ -81,3 +81,15 @@ class ToolExecutionError(AppError):
     """Raised when a requested LLM tool call is unknown, invalid, or fails to execute."""
 
     status_code = 422
+
+
+class EmailVerificationError(AppError):
+    """Raised when an email verification token is invalid or expired."""
+
+    status_code = 400
+
+
+class EmailNotVerifiedError(AppError):
+    """Raised when login is attempted before email verification."""
+
+    status_code = 403
