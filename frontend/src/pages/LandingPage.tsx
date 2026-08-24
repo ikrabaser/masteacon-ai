@@ -28,6 +28,53 @@ export function LandingPage() {
     description.content = copy.seo.description;
   }, [copy.seo.description, copy.seo.title]);
 
+  // Scroll-reveal: fades/rises each section in as it enters the viewport.
+  // Gated behind `prefers-reduced-motion` and only turned on once we've
+  // actually found elements to observe, so a JS failure never leaves
+  // content permanently invisible (see the [data-reveal="ready"] CSS guard).
+  useEffect(() => {
+    const root = document.querySelector<HTMLElement>(".masteacon-landing");
+    if (!root) return;
+
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      return;
+    }
+
+    const targets = root.querySelectorAll<HTMLElement>(
+      ".masteacon-landing-hero-copy, .masteacon-landing-hero-visual, .masteacon-landing-section",
+    );
+    if (targets.length === 0) return;
+
+    root.setAttribute("data-reveal", "ready");
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            entry.target.classList.add("is-visible");
+            observer.unobserve(entry.target);
+          }
+        }
+      },
+      { threshold: 0.12, rootMargin: "0px 0px -60px 0px" },
+    );
+
+    targets.forEach((el) => observer.observe(el));
+
+    // Safety net: if IntersectionObserver never fires for some reason (an
+    // old browser, a background/non-composited tab, ...), force every
+    // section visible after a short delay instead of leaving it stuck at
+    // opacity 0 forever.
+    const fallback = window.setTimeout(() => {
+      targets.forEach((el) => el.classList.add("is-visible"));
+    }, 1500);
+
+    return () => {
+      observer.disconnect();
+      window.clearTimeout(fallback);
+    };
+  }, []);
+
   const [activePreview, setActivePreview] =
     useState<PreviewKey>("command");
 

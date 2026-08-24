@@ -19,11 +19,44 @@
   background: #040d16;
 }
 
+/* Scroll-reveal: only activated once JS has confirmed it can run (see the
+   [data-reveal="ready"] attribute set by LandingPage's IntersectionObserver
+   effect), so content is never stuck invisible if JS fails to run. */
+.masteacon-landing[data-reveal="ready"] .masteacon-landing-hero-copy,
+.masteacon-landing[data-reveal="ready"] .masteacon-landing-hero-visual,
+.masteacon-landing[data-reveal="ready"] .masteacon-landing-section {
+  opacity: 0;
+  transform: translateY(28px);
+  transition:
+    opacity 700ms cubic-bezier(0.16, 1, 0.3, 1),
+    transform 700ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.masteacon-landing[data-reveal="ready"] .masteacon-landing-hero-copy.is-visible,
+.masteacon-landing[data-reveal="ready"] .masteacon-landing-hero-visual.is-visible,
+.masteacon-landing[data-reveal="ready"] .masteacon-landing-section.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .masteacon-landing-ambient,
+  .masteacon-landing-hero-copy,
+  .masteacon-landing-hero-visual,
+  .masteacon-landing-section {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+    animation: none !important;
+  }
+}
+
 .masteacon-landing-ambient {
   position: absolute;
   pointer-events: none;
   border-radius: 999px;
   border: 1px solid rgba(39, 142, 195, 0.06);
+  animation: masteacon-drift 26s ease-in-out infinite;
 }
 
 .masteacon-landing-ambient-one {
@@ -31,6 +64,7 @@
   height: 720px;
   right: -280px;
   top: -330px;
+  animation-delay: 0s;
 }
 
 .masteacon-landing-ambient-two {
@@ -38,6 +72,18 @@
   height: 640px;
   left: -350px;
   top: 680px;
+  animation-delay: -13s;
+  animation-direction: reverse;
+}
+
+@keyframes masteacon-drift {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  50% {
+    transform: translate(26px, 34px) scale(1.045);
+  }
 }
 
 .masteacon-landing-header {
@@ -174,7 +220,19 @@
   height: 7px;
   border-radius: 50%;
   background: var(--landing-amber);
-  box-shadow: 0 0 0 5px rgba(226, 160, 43, 0.09);
+  animation: masteacon-pulse-dot 2.4s ease-in-out infinite;
+}
+
+@keyframes masteacon-pulse-dot {
+  0% {
+    box-shadow: 0 0 0 0 rgba(226, 160, 43, 0.4);
+  }
+  70% {
+    box-shadow: 0 0 0 8px rgba(226, 160, 43, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(226, 160, 43, 0);
+  }
 }
 
 .masteacon-landing-hero h1 {
@@ -358,6 +416,8 @@
   border-radius: 999px;
   border: 1px solid rgba(37, 61, 79, 0.14);
   background: rgba(255, 255, 255, 0.55);
+  opacity: 0;
+  animation: masteacon-mockup-rise 600ms cubic-bezier(0.16, 1, 0.3, 1) 200ms forwards;
 }
 
 :root[data-theme="dark"] .masteacon-landing-hero-mockup-input {
@@ -371,6 +431,17 @@
   font-size: 12px;
   white-space: nowrap;
   text-overflow: ellipsis;
+}
+
+.masteacon-landing-hero-mockup-input span:first-child::after {
+  content: "";
+  display: inline-block;
+  width: 1px;
+  height: 12px;
+  margin-left: 3px;
+  vertical-align: -2px;
+  background: currentColor;
+  animation: masteacon-caret-blink 1s step-end infinite;
 }
 
 :root[data-theme="dark"] .masteacon-landing-hero-mockup-input span:first-child {
@@ -392,10 +463,71 @@
   );
   font-size: 14px;
   box-shadow: 0 10px 22px rgba(183, 114, 9, 0.28);
+  transition: transform 200ms ease, box-shadow 200ms ease;
+  animation: masteacon-send-pulse 2.6s ease-in-out 900ms infinite;
+}
+
+.masteacon-landing-hero-mockup-send:hover {
+  transform: scale(1.08);
 }
 
 .masteacon-landing-hero-mockup-answer {
   margin-top: 0;
+  opacity: 0;
+  animation: masteacon-mockup-rise 600ms cubic-bezier(0.16, 1, 0.3, 1) 650ms forwards;
+}
+
+.masteacon-landing-hero-mockup-body > .masteacon-preview-sources {
+  opacity: 0;
+  animation: masteacon-mockup-rise 600ms cubic-bezier(0.16, 1, 0.3, 1) 1000ms forwards;
+}
+
+@keyframes masteacon-mockup-rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes masteacon-caret-blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+}
+
+@keyframes masteacon-send-pulse {
+  0%,
+  100% {
+    box-shadow: 0 10px 22px rgba(183, 114, 9, 0.28);
+  }
+  50% {
+    box-shadow: 0 10px 26px rgba(183, 114, 9, 0.48);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .masteacon-landing-hero-mockup-input,
+  .masteacon-landing-hero-mockup-answer,
+  .masteacon-landing-hero-mockup-body > .masteacon-preview-sources {
+    opacity: 1;
+    animation: none;
+    transform: none;
+  }
+
+  .masteacon-landing-hero-mockup-input span:first-child::after,
+  .masteacon-landing-hero-mockup-send,
+  .masteacon-landing-ambient,
+  .masteacon-landing-eyebrow-dot {
+    animation: none;
+  }
 }
 
 .masteacon-preview-answer-mark {
