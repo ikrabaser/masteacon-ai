@@ -41,15 +41,33 @@
 }
 
 .masteacon-landing-header {
-  position: relative;
+  position: sticky;
+  top: 18px;
   z-index: 20;
-  width: min(1480px, calc(100% - 56px));
-  min-height: 84px;
-  margin: 0 auto;
+  width: min(1180px, calc(100% - 32px));
+  min-height: 68px;
+  margin: 18px auto 0;
+  padding: 0 14px 0 22px;
   display: grid;
   grid-template-columns: auto 1fr auto;
   align-items: center;
   gap: 32px;
+  border-radius: 999px;
+  border: 1px solid rgba(37, 61, 79, 0.1);
+  background: rgba(247, 242, 232, 0.72);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  box-shadow:
+    0 18px 44px rgba(61, 48, 29, 0.12),
+    0 1px 0 rgba(255, 255, 255, 0.6) inset;
+}
+
+:root[data-theme="dark"] .masteacon-landing-header {
+  border-color: rgba(129, 156, 179, 0.14);
+  background: rgba(9, 21, 33, 0.68);
+  box-shadow:
+    0 18px 44px rgba(0, 0, 0, 0.32),
+    0 1px 0 rgba(255, 255, 255, 0.05) inset;
 }
 
 .masteacon-landing-brand {
@@ -99,7 +117,7 @@
   display: inline-flex;
   align-items: center;
   gap: 10px;
-  border-radius: 10px;
+  border-radius: 999px;
   color: #07131f;
   background: linear-gradient(
     135deg,
@@ -109,7 +127,9 @@
   text-decoration: none;
   font-size: 13px;
   font-weight: 800;
-  box-shadow: 0 12px 28px rgba(184, 119, 17, 0.14);
+  box-shadow:
+    0 12px 28px rgba(184, 119, 17, 0.16),
+    0 1px 0 rgba(255, 255, 255, 0.45) inset;
 }
 
 .masteacon-landing-hero {
@@ -194,12 +214,12 @@
 .masteacon-landing-primary,
 .masteacon-landing-secondary {
   min-height: 52px;
-  padding: 0 23px;
+  padding: 0 26px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 18px;
-  border-radius: 11px;
+  border-radius: 999px;
   text-decoration: none;
   font-size: 13px;
   font-weight: 800;
@@ -212,18 +232,22 @@
     #d88c12,
     var(--landing-amber-light)
   );
-  box-shadow: 0 18px 40px rgba(183, 114, 9, 0.18);
+  box-shadow:
+    0 18px 40px rgba(183, 114, 9, 0.2),
+    0 1px 0 rgba(255, 255, 255, 0.5) inset;
 }
 
 .masteacon-landing-secondary {
   color: inherit;
   border: 1px solid rgba(23, 47, 68, 0.14);
   background: rgba(255, 255, 255, 0.28);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.4) inset;
 }
 
 :root[data-theme="dark"] .masteacon-landing-secondary {
   border-color: rgba(143, 174, 201, 0.15);
   background: rgba(12, 28, 42, 0.62);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.05) inset;
 }
 
 .masteacon-landing-trust-row {
@@ -253,6 +277,8 @@
 .masteacon-landing-hero-visual {
   position: relative;
   min-height: 560px;
+  display: flex;
+  align-items: center;
   border: 1px solid rgba(37, 61, 79, 0.12);
   border-radius: 34px;
   overflow: hidden;
@@ -292,89 +318,94 @@
     0 0 0 145px rgba(43, 135, 170, 0.012);
 }
 
-.masteacon-landing-radar {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 340px;
-  height: 340px;
-  transform: translate(-50%, -50%);
-  display: grid;
-  place-items: center;
-}
-
-.masteacon-landing-radar-ring {
-  position: absolute;
-  border: 1px solid rgba(53, 174, 205, 0.19);
-  border-radius: 50%;
-}
-
-.masteacon-landing-radar-ring.ring-one {
-  width: 138px;
-  height: 138px;
-}
-
-.masteacon-landing-radar-ring.ring-two {
-  width: 224px;
-  height: 224px;
-}
-
-.masteacon-landing-radar-ring.ring-three {
-  width: 324px;
-  height: 324px;
-}
-
-.masteacon-landing-radar-logo {
+/* Hero mockup: an AI-prompt-box card (question in, grounded answer + sources
+   out) — the product's own "ask a question, get a sourced answer" loop shown
+   as the hero visual, instead of a purely decorative animation. */
+.masteacon-landing-hero-mockup {
   position: relative;
   z-index: 2;
-  filter:
-    drop-shadow(0 0 26px rgba(49, 188, 211, 0.15))
-    drop-shadow(0 20px 32px rgba(0, 0, 0, 0.32));
+  width: min(440px, calc(100% - 64px));
+  margin: 0 auto;
+  overflow: hidden;
+  border: 1px solid rgba(129, 156, 179, 0.18);
+  border-radius: 22px;
+  background: #fffaf2;
+  box-shadow:
+    0 30px 70px rgba(0, 0, 0, 0.28),
+    0 1px 0 rgba(255, 255, 255, 0.5) inset;
 }
 
-.masteacon-landing-intelligence-card {
-  position: absolute;
-  z-index: 3;
-  min-width: 174px;
-  padding: 15px 17px;
+:root[data-theme="dark"] .masteacon-landing-hero-mockup {
+  background: #0b1b29;
+  box-shadow:
+    0 30px 70px rgba(0, 0, 0, 0.4),
+    0 1px 0 rgba(255, 255, 255, 0.04) inset;
+}
+
+.masteacon-landing-hero-mockup-body {
+  padding: 20px;
+  display: grid;
+  gap: 16px;
+}
+
+.masteacon-landing-hero-mockup-input {
   display: flex;
-  flex-direction: column;
-  gap: 4px;
-  border: 1px solid rgba(120, 163, 190, 0.18);
-  border-radius: 14px;
-  color: #dfe9ef;
-  background: rgba(7, 20, 32, 0.83);
-  backdrop-filter: blur(12px);
-  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.18);
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 46px;
+  padding: 0 8px 0 18px;
+  border-radius: 999px;
+  border: 1px solid rgba(37, 61, 79, 0.14);
+  background: rgba(255, 255, 255, 0.55);
 }
 
-.masteacon-landing-intelligence-card span {
-  color: #6d8aa2;
-  font-size: 10px;
+:root[data-theme="dark"] .masteacon-landing-hero-mockup-input {
+  border-color: rgba(129, 156, 179, 0.16);
+  background: rgba(255, 255, 255, 0.04);
 }
 
-.masteacon-landing-intelligence-card strong {
+.masteacon-landing-hero-mockup-input span:first-child {
+  overflow: hidden;
+  color: #536270;
   font-size: 12px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
-.masteacon-landing-intelligence-card small {
-  color: #dba53f;
-  font-size: 9px;
+:root[data-theme="dark"] .masteacon-landing-hero-mockup-input span:first-child {
+  color: #9fb3c4;
 }
 
-.masteacon-landing-intelligence-card.card-one {
-  left: 34px;
-  top: 42px;
+.masteacon-landing-hero-mockup-send {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  color: #07131f;
+  background: linear-gradient(
+    135deg,
+    var(--landing-amber),
+    var(--landing-amber-light)
+  );
+  font-size: 14px;
+  box-shadow: 0 10px 22px rgba(183, 114, 9, 0.28);
 }
 
-.masteacon-landing-intelligence-card.card-two {
-  right: 32px;
-  top: 128px;
+.masteacon-landing-hero-mockup-answer {
+  margin-top: 0;
 }
 
-.masteacon-landing-intelligence-card.card-three {
-  right: 66px;
-  bottom: 42px;
+.masteacon-preview-answer-mark {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: rgba(226, 160, 43, 0.12);
 }
 
 .masteacon-landing-section {
@@ -988,22 +1019,6 @@
     min-height: 450px;
   }
 
-  .masteacon-landing-intelligence-card {
-    transform: scale(0.84);
-  }
-
-  .masteacon-landing-intelligence-card.card-one {
-    left: 5px;
-  }
-
-  .masteacon-landing-intelligence-card.card-two {
-    right: 0;
-  }
-
-  .masteacon-landing-intelligence-card.card-three {
-    right: 14px;
-  }
-
   .masteacon-product-showcase,
   .masteacon-problem-section,
   .masteacon-how-section {
@@ -1067,14 +1082,6 @@
   .masteacon-landing-hero-visual {
     min-height: 390px;
     border-radius: 24px;
-  }
-
-  .masteacon-landing-radar {
-    transform: translate(-50%, -50%) scale(0.8);
-  }
-
-  .masteacon-landing-intelligence-card {
-    display: none;
   }
 
   .masteacon-product-preview-side {

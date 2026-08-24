@@ -235,32 +235,51 @@ export function LandingPage() {
         </div>
 
         <div className="masteacon-landing-hero-visual">
-          <div className="masteacon-landing-radar">
-            <div className="masteacon-landing-radar-ring ring-one" />
-            <div className="masteacon-landing-radar-ring ring-two" />
-            <div className="masteacon-landing-radar-ring ring-three" />
+          <div className="masteacon-landing-hero-mockup">
+            <div className="masteacon-product-window-bar">
+              <div className="masteacon-product-window-dots">
+                <span />
+                <span />
+                <span />
+              </div>
 
-            <div className="masteacon-landing-radar-logo">
-              <Logo size={112} mColor="#F5F1E8" />
+              <span className="masteacon-product-window-title">
+                Masteacon
+              </span>
+
+              <span className="masteacon-product-window-status">
+                <i />
+                {copy.preview.grounded}
+              </span>
             </div>
-          </div>
 
-          <div className="masteacon-landing-intelligence-card card-one">
-            <span>{copy.preview.ask}</span>
-            <strong>{copy.preview.answerReady}</strong>
-            <small>{copy.preview.grounded}</small>
-          </div>
+            <div className="masteacon-landing-hero-mockup-body">
+              <div className="masteacon-landing-hero-mockup-input">
+                <span>{copy.preview.question}</span>
+                <span
+                  className="masteacon-landing-hero-mockup-send"
+                  aria-hidden="true"
+                >
+                  →
+                </span>
+              </div>
 
-          <div className="masteacon-landing-intelligence-card card-two">
-            <span>{copy.preview.tabs.command.metricLabel}</span>
-            <strong>{copy.preview.tabs.command.metricValue}</strong>
-            <small>{copy.preview.liveSignal}</small>
-          </div>
+              <div className="masteacon-preview-answer masteacon-landing-hero-mockup-answer">
+                <div className="masteacon-preview-answer-mark">
+                  <Logo size={22} />
+                </div>
 
-          <div className="masteacon-landing-intelligence-card card-three">
-            <span>{copy.preview.tabs.agent.metricLabel}</span>
-            <strong>{copy.preview.tabs.agent.metricValue}</strong>
-            <small>{copy.preview.tabs.agent.label}</small>
+                <div>
+                  <strong>{copy.preview.answerReady}</strong>
+                  <p>{copy.preview.answerDescription}</p>
+                </div>
+              </div>
+
+              <div className="masteacon-preview-sources">
+                <span>01 · product-notes.txt</span>
+                <span>02 · company-policy.txt</span>
+              </div>
+            </div>
           </div>
         </div>
       </section>
