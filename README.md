@@ -20,6 +20,9 @@ account that owns it.
   background, with bounded automatic retries on transient failures
 - **Semantic search** — vector similarity search over indexed chunks, optionally filtered by
   document or content type
+- **Hybrid search** — an optional fusion of vector similarity with PostgreSQL full-text (keyword)
+  search via Reciprocal Rank Fusion, so an exact technical term a pure embedding match can miss
+  (an error code, a config key) still surfaces (disabled by default)
 - **Grounded question answering (RAG)** — answers are generated strictly from retrieved context,
   with source attribution for every claim; conversations keep bounded prior-turn history so
   follow-up questions stay coherent without letting the prompt grow without limit
@@ -137,7 +140,10 @@ frontend/    # React + Vite + TypeScript web app
    caller's own workspace through `ChunkVectorStore` — a LangChain `VectorStore` adapter over the
    pgvector-backed repository — via cosine similarity (`SEARCH_TOP_K` / `SIMILARITY_THRESHOLD`),
    with optional filtering by document or content type. `workspace_id` is a mandatory filter the
-   adapter refuses to search without, so retrieval can never cross a workspace boundary.
+   adapter refuses to search without, so retrieval can never cross a workspace boundary. If
+   `HYBRID_SEARCH_ENABLED` is on, this vector search is fused with a PostgreSQL full-text
+   (keyword) search over the same chunks via Reciprocal Rank Fusion, so an exact technical term a
+   pure embedding match can miss still surfaces.
 4. **Rerank (optional):** if enabled, a wider candidate set is fetched and reordered by a blend
    of vector similarity and lexical overlap before being truncated to the final top-k.
 5. **Generate:** the retrieved chunks — plus, inside a conversation, a bounded window of prior
@@ -201,8 +207,9 @@ locally you also need a Celery worker running: `celery -A app.tasks.celery_app w
 | `SEARCH_TOP_K` | Default number of chunks retrieved | `5` |
 | `SIMILARITY_THRESHOLD` | Minimum cosine similarity to keep a match | `0.3` |
 | `RERANK_ENABLED` | Enable the reranking pass | `false` |
-| `RETRIEVAL_CANDIDATE_COUNT` | Candidates fetched before reranking | `20` |
+| `RETRIEVAL_CANDIDATE_COUNT` | Candidates fetched before reranking (also used by hybrid search) | `20` |
 | `RERANK_TOP_K` | Chunks kept after reranking | `5` |
+| `HYBRID_SEARCH_ENABLED` | Fuse vector + keyword (full-text) search via RRF | `false` |
 | `CONVERSATION_HISTORY_MAX_MESSAGES` | Prior turns kept per conversation | `10` |
 | `CONVERSATION_HISTORY_MAX_TOKENS` | Token budget for prior turns | `2000` |
 | `MAX_UPLOAD_SIZE_MB` | Max upload size | `20` |
@@ -330,10 +337,10 @@ curl -X POST http://localhost:8000/api/v1/ask \
 pytest
 ```
 
-114 tests cover authentication, workspace/document/conversation ownership and isolation, parsing
-(PDF/DOCX/TXT), chunking, embedding, semantic retrieval and filtering, reranking, the RAG and
-agent pipelines, tool authorization, async indexing (including bounded retry behavior), and
-structured logging. All LLM/embedding calls are replaced with deterministic fake providers, and
+159 tests cover authentication, workspace/document/conversation ownership and isolation, parsing
+(PDF/DOCX/TXT), chunking, embedding, semantic retrieval and filtering, hybrid search fusion,
+reranking, the RAG and agent pipelines, tool authorization, async indexing (including bounded
+retry behavior), and structured logging. All LLM/embedding calls are replaced with deterministic fake providers, and
 the Celery dispatcher has a synchronous in-process fake — no real, billable API calls are made
 during testing, and results are fully reproducible.
 

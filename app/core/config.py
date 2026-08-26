@@ -47,6 +47,12 @@ class Settings(BaseSettings):
     retrieval_candidate_count: int = 20
     rerank_top_k: int = 5
 
+    # Hybrid search — fuses vector similarity with PostgreSQL full-text (keyword)
+    # search via Reciprocal Rank Fusion, so an exact technical term a pure
+    # embedding match might miss (e.g. an error code) still surfaces. Disabled
+    # by default: off means byte-for-byte the same retrieval behavior as before.
+    hybrid_search_enabled: bool = False
+
     # Uploads
     max_upload_size_mb: int = 20
     upload_directory: str = "uploads"

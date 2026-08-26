@@ -51,11 +51,22 @@ class ChunkVectorStore(VectorStore):
     """Exposes indexed `DocumentChunk` rows as a LangChain `VectorStore`."""
 
     def __init__(
-        self, chunk_repository: ChunkRepository, embeddings: Embeddings, similarity_threshold: float
+        self,
+        chunk_repository: ChunkRepository,
+        embeddings: Embeddings,
+        similarity_threshold: float,
+        hybrid_search_enabled: bool = False,
+        hybrid_candidate_count: int | None = None,
     ) -> None:
         self._chunks = chunk_repository
         self._embeddings = embeddings
         self._similarity_threshold = similarity_threshold
+        # Hybrid search: fuse vector similarity with PostgreSQL full-text
+        # (keyword) search via Reciprocal Rank Fusion, so an exact technical
+        # term a pure embedding match might miss still surfaces. Disabled by
+        # default — off means byte-for-byte the same behavior as before.
+        self._hybrid_search_enabled = hybrid_search_enabled
+        self._hybrid_candidate_count = hybrid_candidate_count
 
     @property
     def embeddings(self) -> Embeddings:
@@ -73,14 +84,26 @@ class ChunkVectorStore(VectorStore):
             )
 
         query_embedding = await self._embeddings.aembed_query(query)
-        matches = await self._chunks.similarity_search(
-            query_embedding=query_embedding,
-            limit=k,
-            similarity_threshold=self._similarity_threshold,
-            workspace_id=workspace_id,
-            document_id=filter.get("document_id"),
-            content_type=filter.get("content_type"),
-        )
+        if self._hybrid_search_enabled:
+            matches = await self._chunks.hybrid_search(
+                query_text=query,
+                query_embedding=query_embedding,
+                limit=k,
+                similarity_threshold=self._similarity_threshold,
+                workspace_id=workspace_id,
+                document_id=filter.get("document_id"),
+                content_type=filter.get("content_type"),
+                candidate_count=self._hybrid_candidate_count,
+            )
+        else:
+            matches = await self._chunks.similarity_search(
+                query_embedding=query_embedding,
+                limit=k,
+                similarity_threshold=self._similarity_threshold,
+                workspace_id=workspace_id,
+                document_id=filter.get("document_id"),
+                content_type=filter.get("content_type"),
+            )
         return [
             (
                 Document(

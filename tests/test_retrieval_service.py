@@ -167,3 +167,76 @@ async def test_search_with_reranking_fetches_candidates_then_truncates_to_rerank
     # despite its lower raw vector similarity score.
     assert len(results) == 2
     assert results[0].document_id == 2
+
+
+@pytest.mark.asyncio
+async def test_hybrid_search_disabled_is_unaffected_by_keyword_matches() -> None:
+    # A chunk with a strong keyword match but a low vector similarity score —
+    # with hybrid search off, only the vector score should matter.
+    rows = [
+        FakeChunkRow(
+            1, "guide.pdf", 0, "Exact error code ERR_CONNECTION_REFUSED appears here.",
+            0.20, workspace_id=WORKSPACE_ID, keyword_rank_score=0.9,
+        ),
+        FakeChunkRow(2, "other.pdf", 0, "Something else entirely.", 0.85, workspace_id=WORKSPACE_ID),
+    ]
+    retrieval_service = RetrievalService(
+        chunk_repository=FakeChunkRepository(rows),
+        embedding_service=EmbeddingService(FakeEmbeddingProvider()),
+        default_top_k=5,
+        similarity_threshold=0.0,
+        hybrid_search_enabled=False,
+    )
+
+    results = await retrieval_service.search("ERR_CONNECTION_REFUSED", workspace_id=WORKSPACE_ID)
+
+    assert [r.document_id for r in results] == [2, 1]
+
+
+@pytest.mark.asyncio
+async def test_hybrid_search_promotes_a_strong_keyword_match_over_pure_vector_order() -> None:
+    rows = [
+        FakeChunkRow(
+            1, "guide.pdf", 0, "Exact error code ERR_CONNECTION_REFUSED appears here.",
+            0.20, workspace_id=WORKSPACE_ID, keyword_rank_score=0.9,
+        ),
+        FakeChunkRow(2, "other.pdf", 0, "Something else entirely.", 0.85, workspace_id=WORKSPACE_ID),
+    ]
+    retrieval_service = RetrievalService(
+        chunk_repository=FakeChunkRepository(rows),
+        embedding_service=EmbeddingService(FakeEmbeddingProvider()),
+        default_top_k=5,
+        similarity_threshold=0.0,
+        hybrid_search_enabled=True,
+    )
+
+    results = await retrieval_service.search("ERR_CONNECTION_REFUSED", workspace_id=WORKSPACE_ID)
+
+    # Ranked #1 in vector search (document 2) vs. ranked #1 in keyword search
+    # (document 1) — RRF gives both an equal top-rank contribution, and
+    # document 1 additionally still has a (smaller) vector-side contribution,
+    # so it comes out on top under fusion even though pure vector order
+    # would have put document 2 first.
+    assert results[0].document_id == 1
+
+
+@pytest.mark.asyncio
+async def test_hybrid_search_respects_workspace_isolation() -> None:
+    rows = [
+        FakeChunkRow(
+            1, "other-workspace.pdf", 0, "ERR_CONNECTION_REFUSED here too.",
+            0.99, workspace_id=999, keyword_rank_score=0.99,
+        ),
+        FakeChunkRow(2, "mine.pdf", 0, "My own unrelated document.", 0.30, workspace_id=WORKSPACE_ID),
+    ]
+    retrieval_service = RetrievalService(
+        chunk_repository=FakeChunkRepository(rows),
+        embedding_service=EmbeddingService(FakeEmbeddingProvider()),
+        default_top_k=5,
+        similarity_threshold=0.0,
+        hybrid_search_enabled=True,
+    )
+
+    results = await retrieval_service.search("ERR_CONNECTION_REFUSED", workspace_id=WORKSPACE_ID)
+
+    assert [r.document_id for r in results] == [2]
