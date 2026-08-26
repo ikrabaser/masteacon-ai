@@ -1,0 +1,17 @@
+[
+  {
+    "_comment": "STARTER TEMPLATE — replace workspace_id/relevant_document_ids with a real workspace and documents you've uploaded before running. These placeholder ids will not match anything in a fresh database, and results against them are meaningless — this file exists to show the expected shape, not to be run as-is.",
+    "question": "What is the annual leave policy?",
+    "workspace_id": 1,
+    "relevant_document_ids": [1],
+    "expected_answer_contains": "days",
+    "tags": ["hr-policy"]
+  },
+  {
+    "question": "How do I reset a user's password?",
+    "workspace_id": 1,
+    "relevant_document_ids": [2],
+    "expected_answer_contains": null,
+    "tags": ["support"]
+  }
+]

@@ -28,6 +28,9 @@ account that owns it.
   "Docker daemon connection errors, compose startup failure"); the original question is still
   what's answered, unaffected by the rewrite (disabled by default — an extra LLM call per
   question means added latency and cost)
+- **RAG evaluation** — a standalone CLI scores retrieval quality (hit rate, MRR, Recall/Precision@k)
+  against a labeled dataset, plus optional LLM-judged generation quality (Faithfulness, Answer
+  Relevancy) — see [RAG Evaluation](#rag-evaluation)
 - **Grounded question answering (RAG)** — answers are generated strictly from retrieved context,
   with source attribution for every claim; conversations keep bounded prior-turn history so
   follow-up questions stay coherent without letting the prompt grow without limit
@@ -352,12 +355,37 @@ curl -X POST http://localhost:8000/api/v1/ask \
 pytest
 ```
 
-176 tests cover authentication, workspace/document/conversation ownership and isolation, parsing
+197 tests cover authentication, workspace/document/conversation ownership and isolation, parsing
 (PDF/DOCX/TXT), chunking, embedding, semantic retrieval and filtering, hybrid search fusion,
-reranking, the RAG and agent pipelines, tool authorization, async indexing (including bounded
-retry behavior), and structured logging. All LLM/embedding calls are replaced with deterministic fake providers, and
-the Celery dispatcher has a synchronous in-process fake — no real, billable API calls are made
-during testing, and results are fully reproducible.
+reranking, query rewriting, RAG evaluation metrics, the RAG and agent pipelines, tool
+authorization, async indexing (including bounded retry behavior), and structured logging. All
+LLM/embedding calls are replaced with deterministic fake providers, and the Celery dispatcher has
+a synchronous in-process fake — no real, billable API calls are made during testing, and results
+are fully reproducible.
+
+## RAG Evaluation
+
+A standalone CLI tool measures retrieval and (optionally) generation quality against a labeled
+set of question/expected-answer cases — not something the running application does on its own:
+
+```bash
+# Retrieval only: hit rate, Mean Reciprocal Rank, Recall@k, Precision@k — no LLM involved
+python -m scripts.run_rag_evaluation eval_datasets/sample_eval.json --k 5
+
+# Also grades generation quality via an LLM judge (real, billable calls)
+python -m scripts.run_rag_evaluation eval_datasets/sample_eval.json --with-generation
+```
+
+[`eval_datasets/sample_eval.json`](eval_datasets/sample_eval.json) is a starter template with
+placeholder ids — replace `workspace_id`/`relevant_document_ids` with a real workspace and
+documents you've actually uploaded before running it; results against the placeholders are
+meaningless. Each case is `{question, workspace_id, relevant_document_ids, expected_answer_contains?}`.
+
+Retrieval metrics (`app/evaluation/retrieval_metrics.py`) are dependency-free, deterministic
+functions — no LLM, no cost, safe to run constantly. Generation metrics (Faithfulness: is the
+answer supported by the retrieved context; Answer Relevancy: does it address the question) need
+an LLM judge (`app/evaluation/generation_evaluator.py`) since there's no mechanical way to check
+either — that's why `--with-generation` is opt-in and never runs as part of the test suite.
 
 ## Security Notes
 
