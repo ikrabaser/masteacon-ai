@@ -31,3 +31,11 @@ langchain-core==0.3.86
 langchain-openai==0.2.14
 langchain-anthropic==0.3.22
 langchain-text-splitters==0.3.11
+
+# Optional reranking (RERANKER_PROVIDER=cross_encoder): a local
+# sentence-transformers cross-encoder model. Pulls in PyTorch as a transitive
+# dependency - meaningfully larger install than the rest of this project, but
+# only actually loaded into memory if cross-encoder reranking is used
+# (RERANK_ENABLED=true + RERANKER_PROVIDER=cross_encoder); the default
+# RERANKER_PROVIDER=lexical never imports it.
+sentence-transformers==6.0.0
