@@ -26,3 +26,9 @@ class Reranker(Protocol):
     """
 
     def rerank(self, query: str, candidates: list[RetrievedChunk], top_k: int) -> list[RetrievedChunk]: ...
+
+
+class QueryRewriter(Protocol):
+    """Anything that can rewrite a raw question into a retrieval-optimized query."""
+
+    async def rewrite(self, question: str) -> str: ...

@@ -1,20 +1,20 @@
 """Semantic retrieval service: embeds a query and finds the most similar chunks.
 
-Question -> Embedding -> Vector Search -> Top N Candidates -> Reranker -> Top K -> RAG.
-Vector search itself is done through `ChunkVectorStore`, a LangChain `VectorStore`
-adapter over our pgvector-backed `ChunkRepository` (see langchain_vector_store.py),
-so retrieval is expressed in LangChain's own `Document`/`VectorStore` terms. The
-reranking stage is optional: when no Reranker is wired in (or it's disabled via
-config), this behaves exactly like plain vector search, fetching and returning
+Question -> Query Rewriter -> Embedding -> Vector Search -> Top N Candidates ->
+Reranker -> Top K -> RAG. Vector search itself is done through
+`ChunkVectorStore`, a LangChain `VectorStore` adapter over our pgvector-backed
+`ChunkRepository` (see langchain_vector_store.py), so retrieval is expressed in
+LangChain's own `Document`/`VectorStore` terms. Query rewriting and reranking
+are both optional: when neither is wired in (or disabled via config), this
+behaves exactly like plain vector search, fetching and returning
 `default_top_k` (or the caller-provided `limit`) results directly. Which
-Reranker implementation is used (lexical-overlap or a local cross-encoder
-model) is decided by the caller (see app.api.dependencies) — this service only
-depends on the shared Reranker interface.
+QueryRewriter/Reranker implementation is used is decided by the caller (see
+app.api.dependencies) — this service only depends on their shared interfaces.
 """
 from app.repositories.chunk_repository import ChunkRepository
 from app.services.embedding_service import EmbeddingService
 from app.services.langchain_vector_store import ChunkVectorStore, EmbeddingServiceAdapter
-from app.services.retrieval_types import Reranker, RetrievedChunk
+from app.services.retrieval_types import QueryRewriter, Reranker, RetrievedChunk
 
 __all__ = ["RetrievedChunk", "RetrievalService"]
 
@@ -32,7 +32,9 @@ class RetrievalService:
         candidate_count: int | None = None,
         rerank_top_k: int | None = None,
         hybrid_search_enabled: bool = False,
+        query_rewriting_service: QueryRewriter | None = None,
     ) -> None:
+        self._query_rewriting_service = query_rewriting_service
         self._vector_store = ChunkVectorStore(
             chunk_repository=chunk_repository,
             embeddings=EmbeddingServiceAdapter(embedding_service),
@@ -75,8 +77,15 @@ class RetrievalService:
         if content_type is not None:
             search_filter["content_type"] = content_type
 
+        # Rewriting only changes what's embedded/keyword-searched to find
+        # candidates — reranking below still judges relevance against the
+        # user's actual original question, not the expanded retrieval query.
+        retrieval_query = query
+        if self._query_rewriting_service is not None:
+            retrieval_query = await self._query_rewriting_service.rewrite(query)
+
         matches = await self._vector_store.asimilarity_search_with_score(
-            query, k=fetch_limit, filter=search_filter
+            retrieval_query, k=fetch_limit, filter=search_filter
         )
 
         candidates = [

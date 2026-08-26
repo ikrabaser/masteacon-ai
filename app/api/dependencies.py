@@ -32,10 +32,11 @@ from app.services.email_service import EmailService
 from app.services.agent_service import AgentService
 from app.services.cross_encoder_reranking_service import CrossEncoderRerankingService
 from app.services.indexing_dispatcher import IndexingDispatcher
+from app.services.query_rewriting_service import QueryRewritingService
 from app.services.rag_service import RagService
 from app.services.reranking_service import RerankingService
 from app.services.retrieval_service import RetrievalService
-from app.services.retrieval_types import Reranker
+from app.services.retrieval_types import QueryRewriter, Reranker
 from app.services.tool_execution_service import ToolExecutionService
 from app.services.workspace_service import WorkspaceService
 from app.tasks.document_indexing_task import CeleryIndexingDispatcher
@@ -198,11 +199,29 @@ def get_reranking_service(settings: Settings = Depends(get_settings)) -> Reranke
     )
 
 
+def get_query_rewriting_service(settings: Settings = Depends(get_settings)) -> QueryRewriter | None:
+    """Return a QueryRewritingService only when query rewriting is enabled —
+    same "disabled means unchanged behavior" contract as reranking/hybrid search.
+
+    Deliberately does NOT take `chat_provider: ChatProvider = Depends(get_chat_provider)`
+    as a parameter: FastAPI resolves every declared `Depends()` unconditionally,
+    even ones the function body never ends up using — that would construct a
+    real ChatOpenAI/ChatAnthropic client (and fail without an API key) on every
+    request that reaches RetrievalService, regardless of whether query
+    rewriting is even enabled. Calling create_chat_provider() directly here,
+    only inside the `if`, keeps construction genuinely conditional.
+    """
+    if not settings.query_rewriting_enabled:
+        return None
+    return QueryRewritingService(create_chat_provider(settings))
+
+
 def get_retrieval_service(
     settings: Settings = Depends(get_settings),
     chunk_repository: ChunkRepository = Depends(get_chunk_repository),
     embedding_service: EmbeddingService = Depends(get_embedding_service),
     reranking_service: Reranker | None = Depends(get_reranking_service),
+    query_rewriting_service: QueryRewriter | None = Depends(get_query_rewriting_service),
 ) -> RetrievalService:
     return RetrievalService(
         chunk_repository=chunk_repository,
@@ -213,6 +232,7 @@ def get_retrieval_service(
         candidate_count=settings.retrieval_candidate_count,
         rerank_top_k=settings.rerank_top_k,
         hybrid_search_enabled=settings.hybrid_search_enabled,
+        query_rewriting_service=query_rewriting_service,
     )
 
 

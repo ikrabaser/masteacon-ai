@@ -240,3 +240,88 @@ async def test_hybrid_search_respects_workspace_isolation() -> None:
     results = await retrieval_service.search("ERR_CONNECTION_REFUSED", workspace_id=WORKSPACE_ID)
 
     assert [r.document_id for r in results] == [2]
+
+
+class _FixedQueryRewriter:
+    """A QueryRewriter test double that always returns the same fixed query."""
+
+    def __init__(self, rewritten_query: str) -> None:
+        self.rewritten_query = rewritten_query
+        self.last_question: str | None = None
+
+    async def rewrite(self, question: str) -> str:
+        self.last_question = question
+        return self.rewritten_query
+
+
+class _RecordingEmbeddingProvider(FakeEmbeddingProvider):
+    """Records every text passed to embed_text, so tests can assert on it."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.embedded_texts: list[str] = []
+
+    async def embed_text(self, text: str) -> list[float]:
+        self.embedded_texts.append(text)
+        return await super().embed_text(text)
+
+
+@pytest.mark.asyncio
+async def test_query_rewriting_is_used_for_embedding_when_enabled() -> None:
+    rows = [FakeChunkRow(1, "doc.pdf", 0, "Docker daemon connection errors explained.", 0.9)]
+    rewriter = _FixedQueryRewriter("Docker daemon connection errors, compose startup failure")
+    embedding_provider = _RecordingEmbeddingProvider()
+    retrieval_service = RetrievalService(
+        chunk_repository=FakeChunkRepository(rows),
+        embedding_service=EmbeddingService(embedding_provider),
+        default_top_k=5,
+        similarity_threshold=0.0,
+        query_rewriting_service=rewriter,
+    )
+
+    await retrieval_service.search("docker neden olmuyor", workspace_id=WORKSPACE_ID)
+
+    assert rewriter.last_question == "docker neden olmuyor"
+    assert embedding_provider.embedded_texts == ["Docker daemon connection errors, compose startup failure"]
+
+
+@pytest.mark.asyncio
+async def test_query_rewriting_disabled_by_default_uses_original_question() -> None:
+    rows = [FakeChunkRow(1, "doc.pdf", 0, "Some content.", 0.9)]
+    embedding_provider = _RecordingEmbeddingProvider()
+    retrieval_service = RetrievalService(
+        chunk_repository=FakeChunkRepository(rows),
+        embedding_service=EmbeddingService(embedding_provider),
+        default_top_k=5,
+        similarity_threshold=0.0,
+    )
+
+    await retrieval_service.search("original question", workspace_id=WORKSPACE_ID)
+
+    assert embedding_provider.embedded_texts == ["original question"]
+
+
+@pytest.mark.asyncio
+async def test_reranking_scores_against_the_original_question_not_the_rewritten_one() -> None:
+    # The reranker should judge relevance against what the user actually
+    # asked, even though a different (rewritten) query was used to fetch
+    # candidates in the first place.
+    rows = [
+        FakeChunkRow(1, "a.pdf", 0, "docker neden olmuyor troubleshooting tips", 0.5),
+        FakeChunkRow(2, "b.pdf", 0, "completely unrelated content", 0.5),
+    ]
+    rewriter = _FixedQueryRewriter("Docker daemon connection errors")
+    retrieval_service = RetrievalService(
+        chunk_repository=FakeChunkRepository(rows),
+        embedding_service=EmbeddingService(FakeEmbeddingProvider()),
+        default_top_k=5,
+        similarity_threshold=0.0,
+        reranking_service=RerankingService(lexical_weight=1.0),
+        query_rewriting_service=rewriter,
+    )
+
+    results = await retrieval_service.search("docker neden olmuyor", workspace_id=WORKSPACE_ID)
+
+    # Pure lexical-overlap reranking (weight=1.0) against the *original*
+    # Turkish question should promote the chunk containing those exact words.
+    assert results[0].document_id == 1
