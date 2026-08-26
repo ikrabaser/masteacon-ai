@@ -32,8 +32,14 @@ account that owns it.
   against a labeled dataset, plus optional LLM-judged generation quality (Faithfulness, Answer
   Relevancy) — see [RAG Evaluation](#rag-evaluation)
 - **Grounded question answering (RAG)** — answers are generated strictly from retrieved context,
-  with source attribution for every claim; conversations keep bounded prior-turn history so
-  follow-up questions stay coherent without letting the prompt grow without limit
+  with inline, claim-level citations (`[1]`, `[2]`, …) mapped back to the exact source
+  document/chunk/passage, not just a source list at the end; conversations keep bounded
+  prior-turn history so follow-up questions stay coherent without letting the prompt grow
+  without limit
+- **Groundedness check** — an optional LLM-judge pass that verifies a generated answer's claims
+  are actually supported by the retrieved context before it reaches the user; below the
+  configured threshold, the answer is replaced with an explicit "not enough evidence" message
+  instead of risking an unsupported claim (disabled by default — adds latency and cost)
 - **Agent / tool use** — ask a question and let the model decide whether it needs to call a
   read-only tool (list workspaces, list documents, fetch a document, summarize a document); every
   tool call is authorization-checked server-side before it runs, regardless of what the model asks
@@ -222,6 +228,8 @@ locally you also need a Celery worker running: `celery -A app.tasks.celery_app w
 | `SEARCH_TOP_K` | Default number of chunks retrieved | `5` |
 | `SIMILARITY_THRESHOLD` | Minimum cosine similarity to keep a match | `0.3` |
 | `QUERY_REWRITING_ENABLED` | Expand the question into a retrieval-optimized query via an LLM call | `false` |
+| `GROUNDEDNESS_CHECK_ENABLED` | Verify the answer is supported by context via an LLM judge before returning it | `false` |
+| `GROUNDEDNESS_THRESHOLD` | Minimum faithfulness score (0-1) to pass the check | `0.5` |
 | `RERANK_ENABLED` | Enable the reranking pass | `false` |
 | `RERANKER_PROVIDER` | `lexical` (no dependency) or `cross_encoder` (local model) | `lexical` |
 | `CROSS_ENCODER_MODEL` | Model used when `RERANKER_PROVIDER=cross_encoder` | `cross-encoder/ms-marco-MiniLM-L-6-v2` |
@@ -337,17 +345,27 @@ curl -X POST http://localhost:8000/api/v1/ask \
 
 ```json
 {
-  "answer": "Şirket politikasına göre çalışanlar yılda 14 gün izin hakkına sahiptir.",
+  "answer": "Şirket politikasına göre çalışanlar yılda 14 gün izin hakkına sahiptir [1].",
   "sources": [
     {
       "document_id": 1,
       "filename": "employee_handbook.pdf",
       "chunk_index": 4,
-      "similarity_score": 0.91
+      "similarity_score": 0.91,
+      "content": "Employees are entitled to 14 days of paid annual leave per year.",
+      "citation_marker": 1,
+      "cited": true
     }
-  ]
+  ],
+  "grounded": null
 }
 ```
+
+`citation_marker` matches the `[N]` the model was instructed to cite inline in `answer`; `cited`
+tells you whether it actually did. `grounded` is `null` unless `GROUNDEDNESS_CHECK_ENABLED=true`,
+in which case it's `true`/`false` depending on whether the answer passed the LLM-judge
+faithfulness check (see [RAG Evaluation](#rag-evaluation) — the same `GenerationEvaluator` backs
+both).
 
 ## Testing
 
@@ -355,10 +373,11 @@ curl -X POST http://localhost:8000/api/v1/ask \
 pytest
 ```
 
-197 tests cover authentication, workspace/document/conversation ownership and isolation, parsing
+204 tests cover authentication, workspace/document/conversation ownership and isolation, parsing
 (PDF/DOCX/TXT), chunking, embedding, semantic retrieval and filtering, hybrid search fusion,
-reranking, query rewriting, RAG evaluation metrics, the RAG and agent pipelines, tool
-authorization, async indexing (including bounded retry behavior), and structured logging. All
+reranking, query rewriting, citations and the live groundedness check, RAG evaluation metrics,
+the RAG and agent pipelines, tool authorization, async indexing (including bounded retry
+behavior), and structured logging. All
 LLM/embedding calls are replaced with deterministic fake providers, and the Celery dispatcher has
 a synchronous in-process fake — no real, billable API calls are made during testing, and results
 are fully reproducible.

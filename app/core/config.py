@@ -48,6 +48,17 @@ class Settings(BaseSettings):
     # same retrieval behavior as before.
     query_rewriting_enabled: bool = False
 
+    # Groundedness check — an extra LLM-judge call (reusing the same
+    # Faithfulness scorer as `scripts/run_rag_evaluation.py`) that verifies a
+    # generated answer's claims are actually supported by the retrieved
+    # context, live, on every request. Below `groundedness_threshold`, the
+    # answer is replaced with an explicit "not enough evidence" message
+    # instead of risking an unsupported claim reaching the user. Disabled by
+    # default: an extra LLM round-trip per question means added latency and
+    # cost, same trade-off as query rewriting.
+    groundedness_check_enabled: bool = False
+    groundedness_threshold: float = 0.5
+
     # Reranking — a second-stage pass over vector-search candidates. When
     # disabled, retrieval behaves exactly as before (vector search only).
     # reranker_provider selects the implementation when enabled:

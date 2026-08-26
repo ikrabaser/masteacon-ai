@@ -32,8 +32,9 @@ from app.services.email_service import EmailService
 from app.services.agent_service import AgentService
 from app.services.cross_encoder_reranking_service import CrossEncoderRerankingService
 from app.services.indexing_dispatcher import IndexingDispatcher
+from app.evaluation.generation_evaluator import GenerationEvaluator
 from app.services.query_rewriting_service import QueryRewritingService
-from app.services.rag_service import RagService
+from app.services.rag_service import GroundednessChecker, RagService
 from app.services.reranking_service import RerankingService
 from app.services.retrieval_service import RetrievalService
 from app.services.retrieval_types import QueryRewriter, Reranker
@@ -236,11 +237,31 @@ def get_retrieval_service(
     )
 
 
+def get_groundedness_checker(settings: Settings = Depends(get_settings)) -> GroundednessChecker | None:
+    """Return a GenerationEvaluator (as a GroundednessChecker) only when the
+    live groundedness check is enabled — same "disabled means unchanged
+    behavior" contract, and same reason `get_query_rewriting_service` calls
+    create_chat_provider() directly here instead of taking it as a Depends()
+    parameter: constructing a real ChatProvider must stay genuinely
+    conditional, not something FastAPI resolves on every request regardless.
+    """
+    if not settings.groundedness_check_enabled:
+        return None
+    return GenerationEvaluator(create_chat_provider(settings))
+
+
 def get_rag_service(
+    settings: Settings = Depends(get_settings),
     retrieval_service: RetrievalService = Depends(get_retrieval_service),
     chat_provider: ChatProvider = Depends(get_chat_provider),
+    groundedness_checker: GroundednessChecker | None = Depends(get_groundedness_checker),
 ) -> RagService:
-    return RagService(retrieval_service=retrieval_service, chat_provider=chat_provider)
+    return RagService(
+        retrieval_service=retrieval_service,
+        chat_provider=chat_provider,
+        groundedness_checker=groundedness_checker,
+        groundedness_threshold=settings.groundedness_threshold,
+    )
 
 
 def get_conversation_repository(session: AsyncSession = Depends(get_db)) -> ConversationRepository:
