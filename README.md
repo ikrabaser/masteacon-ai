@@ -23,6 +23,11 @@ account that owns it.
 - **Hybrid search** — an optional fusion of vector similarity with PostgreSQL full-text (keyword)
   search via Reciprocal Rank Fusion, so an exact technical term a pure embedding match can miss
   (an error code, a config key) still surfaces (disabled by default)
+- **Query rewriting** — an optional LLM pass that expands a terse or informal question into a
+  retrieval-optimized query before it's embedded/keyword-searched (e.g. "docker neden olmuyor" →
+  "Docker daemon connection errors, compose startup failure"); the original question is still
+  what's answered, unaffected by the rewrite (disabled by default — an extra LLM call per
+  question means added latency and cost)
 - **Grounded question answering (RAG)** — answers are generated strictly from retrieved context,
   with source attribution for every claim; conversations keep bounded prior-turn history so
   follow-up questions stay coherent without letting the prompt grow without limit
@@ -138,8 +143,11 @@ frontend/    # React + Vite + TypeScript web app
    `CHUNK_OVERLAP`), embedded via LangChain's `OpenAIEmbeddings` (`OPENAI_EMBEDDING_MODEL`), and
    stored in PostgreSQL using `pgvector` columns. Transient failures are retried automatically,
    up to a bounded number of attempts with exponential backoff.
-3. **Ask:** a question is embedded the same way; the most similar chunks are retrieved from the
-   caller's own workspace through `ChunkVectorStore` — a LangChain `VectorStore` adapter over the
+3. **Ask:** if query rewriting is enabled (`QUERY_REWRITING_ENABLED`), the question is first
+   expanded into a retrieval-optimized query by the chat provider — this only affects what gets
+   embedded/searched, not what the LLM ultimately answers. That query is embedded the same way
+   documents were; the most similar chunks are retrieved from the caller's own workspace through
+   `ChunkVectorStore` — a LangChain `VectorStore` adapter over the
    pgvector-backed repository — via cosine similarity (`SEARCH_TOP_K` / `SIMILARITY_THRESHOLD`),
    with optional filtering by document or content type. `workspace_id` is a mandatory filter the
    adapter refuses to search without, so retrieval can never cross a workspace boundary. If
@@ -210,6 +218,7 @@ locally you also need a Celery worker running: `celery -A app.tasks.celery_app w
 | `CHUNK_OVERLAP` | Token overlap between chunks | `150` |
 | `SEARCH_TOP_K` | Default number of chunks retrieved | `5` |
 | `SIMILARITY_THRESHOLD` | Minimum cosine similarity to keep a match | `0.3` |
+| `QUERY_REWRITING_ENABLED` | Expand the question into a retrieval-optimized query via an LLM call | `false` |
 | `RERANK_ENABLED` | Enable the reranking pass | `false` |
 | `RERANKER_PROVIDER` | `lexical` (no dependency) or `cross_encoder` (local model) | `lexical` |
 | `CROSS_ENCODER_MODEL` | Model used when `RERANKER_PROVIDER=cross_encoder` | `cross-encoder/ms-marco-MiniLM-L-6-v2` |
@@ -343,7 +352,7 @@ curl -X POST http://localhost:8000/api/v1/ask \
 pytest
 ```
 
-168 tests cover authentication, workspace/document/conversation ownership and isolation, parsing
+176 tests cover authentication, workspace/document/conversation ownership and isolation, parsing
 (PDF/DOCX/TXT), chunking, embedding, semantic retrieval and filtering, hybrid search fusion,
 reranking, the RAG and agent pipelines, tool authorization, async indexing (including bounded
 retry behavior), and structured logging. All LLM/embedding calls are replaced with deterministic fake providers, and

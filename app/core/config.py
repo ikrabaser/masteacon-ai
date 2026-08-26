@@ -41,6 +41,13 @@ class Settings(BaseSettings):
     search_top_k: int = 5
     similarity_threshold: float = 0.3
 
+    # Query rewriting — an LLM call that expands a user's raw (often terse or
+    # informal) question into a retrieval-optimized query before it's embedded
+    # / keyword-searched. Disabled by default: an extra LLM round-trip per
+    # question means added latency and cost, and off means byte-for-byte the
+    # same retrieval behavior as before.
+    query_rewriting_enabled: bool = False
+
     # Reranking — a second-stage pass over vector-search candidates. When
     # disabled, retrieval behaves exactly as before (vector search only).
     # reranker_provider selects the implementation when enabled:

@@ -42,15 +42,19 @@ class FakeChatProvider(ChatProvider):
         self,
         answer: str = "This is a fake answer based on the given context.",
         tool_decision: ToolCallDecision | None = None,
+        raise_on_complete: Exception | None = None,
     ) -> None:
         self.answer = answer
         self.last_system_prompt: str | None = None
         self.last_user_prompt: str | None = None
         self._tool_decision = tool_decision
+        self._raise_on_complete = raise_on_complete
 
     async def complete(self, system_prompt: str, user_prompt: str) -> str:
         self.last_system_prompt = system_prompt
         self.last_user_prompt = user_prompt
+        if self._raise_on_complete is not None:
+            raise self._raise_on_complete
         return self.answer
 
     async def decide_tool_calls(self, system_prompt, user_prompt, tools) -> ToolCallDecision:
