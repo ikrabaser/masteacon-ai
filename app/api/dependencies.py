@@ -199,14 +199,21 @@ def get_reranking_service(settings: Settings = Depends(get_settings)) -> Reranke
     )
 
 
-def get_query_rewriting_service(
-    settings: Settings = Depends(get_settings),
-    chat_provider: ChatProvider = Depends(get_chat_provider),
-) -> QueryRewriter | None:
+def get_query_rewriting_service(settings: Settings = Depends(get_settings)) -> QueryRewriter | None:
     """Return a QueryRewritingService only when query rewriting is enabled —
     same "disabled means unchanged behavior" contract as reranking/hybrid search.
+
+    Deliberately does NOT take `chat_provider: ChatProvider = Depends(get_chat_provider)`
+    as a parameter: FastAPI resolves every declared `Depends()` unconditionally,
+    even ones the function body never ends up using — that would construct a
+    real ChatOpenAI/ChatAnthropic client (and fail without an API key) on every
+    request that reaches RetrievalService, regardless of whether query
+    rewriting is even enabled. Calling create_chat_provider() directly here,
+    only inside the `if`, keeps construction genuinely conditional.
     """
-    return QueryRewritingService(chat_provider) if settings.query_rewriting_enabled else None
+    if not settings.query_rewriting_enabled:
+        return None
+    return QueryRewritingService(create_chat_provider(settings))
 
 
 def get_retrieval_service(
