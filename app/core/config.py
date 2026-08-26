@@ -41,9 +41,17 @@ class Settings(BaseSettings):
     search_top_k: int = 5
     similarity_threshold: float = 0.3
 
-    # Reranking — a lightweight second-stage pass over vector-search candidates.
-    # When disabled, retrieval behaves exactly as before (vector search only).
+    # Reranking — a second-stage pass over vector-search candidates. When
+    # disabled, retrieval behaves exactly as before (vector search only).
+    # reranker_provider selects the implementation when enabled:
+    #   "lexical"       - no extra dependency, blends vector similarity with
+    #                     query/chunk token overlap (the original milestone 8)
+    #   "cross_encoder" - a local sentence-transformers cross-encoder model;
+    #                     more accurate, but adds a PyTorch dependency and a
+    #                     one-time model download
     rerank_enabled: bool = False
+    reranker_provider: str = "lexical"
+    cross_encoder_model: str = "cross-encoder/ms-marco-MiniLM-L-6-v2"
     retrieval_candidate_count: int = 20
     rerank_top_k: int = 5
 

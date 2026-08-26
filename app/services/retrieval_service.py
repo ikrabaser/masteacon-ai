@@ -4,15 +4,17 @@ Question -> Embedding -> Vector Search -> Top N Candidates -> Reranker -> Top K 
 Vector search itself is done through `ChunkVectorStore`, a LangChain `VectorStore`
 adapter over our pgvector-backed `ChunkRepository` (see langchain_vector_store.py),
 so retrieval is expressed in LangChain's own `Document`/`VectorStore` terms. The
-reranking stage is optional: when no RerankingService is wired in (or it's
-disabled via config), this behaves exactly like plain vector search, fetching and
-returning `default_top_k` (or the caller-provided `limit`) results directly.
+reranking stage is optional: when no Reranker is wired in (or it's disabled via
+config), this behaves exactly like plain vector search, fetching and returning
+`default_top_k` (or the caller-provided `limit`) results directly. Which
+Reranker implementation is used (lexical-overlap or a local cross-encoder
+model) is decided by the caller (see app.api.dependencies) — this service only
+depends on the shared Reranker interface.
 """
 from app.repositories.chunk_repository import ChunkRepository
 from app.services.embedding_service import EmbeddingService
 from app.services.langchain_vector_store import ChunkVectorStore, EmbeddingServiceAdapter
-from app.services.reranking_service import RerankingService
-from app.services.retrieval_types import RetrievedChunk
+from app.services.retrieval_types import Reranker, RetrievedChunk
 
 __all__ = ["RetrievedChunk", "RetrievalService"]
 
@@ -26,7 +28,7 @@ class RetrievalService:
         embedding_service: EmbeddingService,
         default_top_k: int,
         similarity_threshold: float,
-        reranking_service: RerankingService | None = None,
+        reranking_service: Reranker | None = None,
         candidate_count: int | None = None,
         rerank_top_k: int | None = None,
         hybrid_search_enabled: bool = False,

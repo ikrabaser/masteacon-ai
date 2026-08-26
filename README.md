@@ -32,9 +32,10 @@ account that owns it.
   for
 - **Pluggable chat providers** — OpenAI or Anthropic, selected via configuration; embeddings
   always use OpenAI (no public Anthropic embeddings API)
-- **Reranking** — an optional lightweight second-stage pass that blends vector similarity with
-  lexical overlap to reorder retrieved candidates before they're used to answer (disabled by
-  default; off means byte-for-byte the same retrieval behavior as without it)
+- **Reranking** — an optional second-stage pass over retrieved candidates before they're used to
+  answer (disabled by default; off means byte-for-byte the same retrieval behavior as without
+  it). Two selectable implementations: a dependency-free heuristic blending vector similarity
+  with lexical overlap, or a local cross-encoder model for more accurate relevance judgments
 - **Structured observability** — every request is tagged with a correlation id and logged as a
   single structured JSON event (counts, durations, ids — never prompts, answers or document
   content)
@@ -60,6 +61,7 @@ account that owns it.
 - **Auth:** JWT (PyJWT + bcrypt password hashing)
 - **Parsing:** pypdf, python-docx
 - **Tokenization:** tiktoken
+- **Reranking (optional):** sentence-transformers (local cross-encoder model)
 - **Testing:** pytest, pytest-asyncio
 - **Frontend:** React + Vite + TypeScript
 - **Containerization:** Docker, Docker Compose
@@ -144,8 +146,10 @@ frontend/    # React + Vite + TypeScript web app
    `HYBRID_SEARCH_ENABLED` is on, this vector search is fused with a PostgreSQL full-text
    (keyword) search over the same chunks via Reciprocal Rank Fusion, so an exact technical term a
    pure embedding match can miss still surfaces.
-4. **Rerank (optional):** if enabled, a wider candidate set is fetched and reordered by a blend
-   of vector similarity and lexical overlap before being truncated to the final top-k.
+4. **Rerank (optional):** if enabled, a wider candidate set is fetched and reordered before being
+   truncated to the final top-k — either by a lexical-overlap blend (`RERANKER_PROVIDER=lexical`,
+   no extra dependency) or a local cross-encoder model (`RERANKER_PROVIDER=cross_encoder`) that
+   scores each (question, chunk) pair jointly for a more accurate relevance judgment.
 5. **Generate:** the retrieved chunks — plus, inside a conversation, a bounded window of prior
    turns — are placed into a strict, context-only system prompt sent to the configured LangChain
    chat model (`ChatOpenAI` or `ChatAnthropic`). If no relevant context is found, the assistant
@@ -207,6 +211,8 @@ locally you also need a Celery worker running: `celery -A app.tasks.celery_app w
 | `SEARCH_TOP_K` | Default number of chunks retrieved | `5` |
 | `SIMILARITY_THRESHOLD` | Minimum cosine similarity to keep a match | `0.3` |
 | `RERANK_ENABLED` | Enable the reranking pass | `false` |
+| `RERANKER_PROVIDER` | `lexical` (no dependency) or `cross_encoder` (local model) | `lexical` |
+| `CROSS_ENCODER_MODEL` | Model used when `RERANKER_PROVIDER=cross_encoder` | `cross-encoder/ms-marco-MiniLM-L-6-v2` |
 | `RETRIEVAL_CANDIDATE_COUNT` | Candidates fetched before reranking (also used by hybrid search) | `20` |
 | `RERANK_TOP_K` | Chunks kept after reranking | `5` |
 | `HYBRID_SEARCH_ENABLED` | Fuse vector + keyword (full-text) search via RRF | `false` |
@@ -337,7 +343,7 @@ curl -X POST http://localhost:8000/api/v1/ask \
 pytest
 ```
 
-159 tests cover authentication, workspace/document/conversation ownership and isolation, parsing
+168 tests cover authentication, workspace/document/conversation ownership and isolation, parsing
 (PDF/DOCX/TXT), chunking, embedding, semantic retrieval and filtering, hybrid search fusion,
 reranking, the RAG and agent pipelines, tool authorization, async indexing (including bounded
 retry behavior), and structured logging. All LLM/embedding calls are replaced with deterministic fake providers, and

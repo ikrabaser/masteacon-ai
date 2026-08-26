@@ -8,7 +8,7 @@ from redis.asyncio import Redis
 from app.core.config import Settings, get_settings
 from app.core.database import get_db
 from app.core.redis import get_redis_client
-from app.core.exceptions import InvalidCredentialsError
+from app.core.exceptions import AppError, InvalidCredentialsError
 from app.core.security import decode_access_token
 from app.models.user import User
 from app.providers.base_chat_provider import ChatProvider
@@ -30,10 +30,12 @@ from app.services.embedding_service import EmbeddingService
 from app.services.email_verification_service import EmailVerificationService
 from app.services.email_service import EmailService
 from app.services.agent_service import AgentService
+from app.services.cross_encoder_reranking_service import CrossEncoderRerankingService
 from app.services.indexing_dispatcher import IndexingDispatcher
 from app.services.rag_service import RagService
 from app.services.reranking_service import RerankingService
 from app.services.retrieval_service import RetrievalService
+from app.services.retrieval_types import Reranker
 from app.services.tool_execution_service import ToolExecutionService
 from app.services.workspace_service import WorkspaceService
 from app.tasks.document_indexing_task import CeleryIndexingDispatcher
@@ -170,18 +172,37 @@ def get_document_service(
     )
 
 
-def get_reranking_service(settings: Settings = Depends(get_settings)) -> RerankingService | None:
-    """Return a RerankingService only when reranking is enabled — keeps the
-    "disabled means unchanged vector-search behavior" contract explicit here.
+class UnsupportedRerankerProviderError(AppError):
+    """Raised when RERANKER_PROVIDER is set to an unrecognized value."""
+
+    status_code = 500
+
+
+def get_reranking_service(settings: Settings = Depends(get_settings)) -> Reranker | None:
+    """Return the configured Reranker only when reranking is enabled — keeps
+    the "disabled means unchanged vector-search behavior" contract explicit
+    here. `RERANK_ENABLED=false` (the default) never even imports the
+    cross-encoder implementation, so a plain install never needs PyTorch.
     """
-    return RerankingService() if settings.rerank_enabled else None
+    if not settings.rerank_enabled:
+        return None
+
+    provider = settings.reranker_provider.strip().lower()
+    if provider == "lexical":
+        return RerankingService()
+    if provider == "cross_encoder":
+        return CrossEncoderRerankingService(model_name=settings.cross_encoder_model)
+
+    raise UnsupportedRerankerProviderError(
+        f"Unsupported RERANKER_PROVIDER '{settings.reranker_provider}'. Supported: lexical, cross_encoder."
+    )
 
 
 def get_retrieval_service(
     settings: Settings = Depends(get_settings),
     chunk_repository: ChunkRepository = Depends(get_chunk_repository),
     embedding_service: EmbeddingService = Depends(get_embedding_service),
-    reranking_service: RerankingService | None = Depends(get_reranking_service),
+    reranking_service: Reranker | None = Depends(get_reranking_service),
 ) -> RetrievalService:
     return RetrievalService(
         chunk_repository=chunk_repository,
