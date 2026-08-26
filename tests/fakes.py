@@ -15,6 +15,7 @@ from app.providers.base_chat_provider import ChatProvider, ToolCallDecision
 from app.providers.base_embedding_provider import EmbeddingProvider
 from app.services.document_indexing_service import DocumentIndexingService
 from app.services.indexing_dispatcher import IndexingDispatcher
+from app.services.reciprocal_rank_fusion import reciprocal_rank_fusion_scores
 
 
 class FakeEmbeddingProvider(EmbeddingProvider):
@@ -69,6 +70,32 @@ class FakeChunkRow:
     similarity_score: float
     workspace_id: int = 1
     content_type: str = "text/plain"
+    # A stand-in chunk id, distinct from document_id, so hybrid_search's RRF
+    # fusion (which dedups by chunk id) behaves like it would against real
+    # DocumentChunk rows. Defaults to chunk_index, which is unique enough for
+    # the small fixture lists these tests build.
+    id: int | None = None
+    # Simulated PostgreSQL ts_rank score for keyword_search — 0 means "this
+    # row is not a keyword match" (real ts_rank is 0 for no match too).
+    keyword_rank_score: float = 0.0
+
+    def __post_init__(self) -> None:
+        if self.id is None:
+            self.id = self.chunk_index
+
+
+class _FakeDoc:
+    def __init__(self, filename: str) -> None:
+        self.filename = filename
+
+
+class _FakeChunk:
+    def __init__(self, row: FakeChunkRow) -> None:
+        self.id = row.id
+        self.document_id = row.document_id
+        self.chunk_index = row.chunk_index
+        self.content = row.content
+        self.document = _FakeDoc(row.filename)
 
 
 class FakeChunkRepository:
@@ -96,19 +123,61 @@ class FakeChunkRepository:
         ]
         matches.sort(key=lambda r: r.similarity_score, reverse=True)
 
-        class _Chunk:
-            def __init__(self, row: FakeChunkRow) -> None:
-                self.document_id = row.document_id
-                self.chunk_index = row.chunk_index
-                self.content = row.content
+        return [(_FakeChunk(row), row.similarity_score) for row in matches[:limit]]
 
-                class _Doc:
-                    def __init__(self, filename: str) -> None:
-                        self.filename = filename
+    async def keyword_search(
+        self,
+        query_text: str,
+        limit: int,
+        workspace_id: int,
+        document_id: int | None = None,
+        content_type: str | None = None,
+    ):
+        matches = [
+            row
+            for row in self._rows
+            if row.keyword_rank_score > 0
+            and row.workspace_id == workspace_id
+            and (document_id is None or row.document_id == document_id)
+            and (content_type is None or row.content_type == content_type)
+        ]
+        matches.sort(key=lambda r: r.keyword_rank_score, reverse=True)
+        return [(_FakeChunk(row), row.keyword_rank_score) for row in matches[:limit]]
 
-                self.document = _Doc(row.filename)
+    async def hybrid_search(
+        self,
+        query_text: str,
+        query_embedding: list[float],
+        limit: int,
+        similarity_threshold: float,
+        workspace_id: int,
+        document_id: int | None = None,
+        content_type: str | None = None,
+        candidate_count: int | None = None,
+        rrf_k: int = 60,
+    ):
+        fetch_limit = candidate_count or limit
+        vector_matches = await self.similarity_search(
+            query_embedding, fetch_limit, similarity_threshold, workspace_id, document_id, content_type
+        )
+        keyword_matches = await self.keyword_search(query_text, fetch_limit, workspace_id, document_id, content_type)
 
-        return [(_Chunk(row), row.similarity_score) for row in matches[:limit]]
+        fused_scores = reciprocal_rank_fusion_scores(
+            [
+                [chunk.id for chunk, _ in vector_matches],
+                [chunk.id for chunk, _ in keyword_matches],
+            ],
+            rrf_k=rrf_k,
+        )
+
+        chunks_by_id = {chunk.id: chunk for chunk, _ in vector_matches}
+        similarity_by_id = {chunk.id: similarity for chunk, similarity in vector_matches}
+        for chunk, _keyword_rank in keyword_matches:
+            chunks_by_id.setdefault(chunk.id, chunk)
+            similarity_by_id.setdefault(chunk.id, 0.0)
+
+        ordered_ids = sorted(fused_scores, key=lambda chunk_id: fused_scores[chunk_id], reverse=True)[:limit]
+        return [(chunks_by_id[chunk_id], similarity_by_id[chunk_id]) for chunk_id in ordered_ids]
 
     async def delete_by_document_id(self, document_id: int) -> None:
         self._rows = [r for r in self._rows if r.document_id != document_id]

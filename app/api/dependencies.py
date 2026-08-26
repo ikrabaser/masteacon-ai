@@ -191,6 +191,7 @@ def get_retrieval_service(
         reranking_service=reranking_service,
         candidate_count=settings.retrieval_candidate_count,
         rerank_top_k=settings.rerank_top_k,
+        hybrid_search_enabled=settings.hybrid_search_enabled,
     )
 
 

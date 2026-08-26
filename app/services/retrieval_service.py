@@ -29,11 +29,14 @@ class RetrievalService:
         reranking_service: RerankingService | None = None,
         candidate_count: int | None = None,
         rerank_top_k: int | None = None,
+        hybrid_search_enabled: bool = False,
     ) -> None:
         self._vector_store = ChunkVectorStore(
             chunk_repository=chunk_repository,
             embeddings=EmbeddingServiceAdapter(embedding_service),
             similarity_threshold=similarity_threshold,
+            hybrid_search_enabled=hybrid_search_enabled,
+            hybrid_candidate_count=candidate_count,
         )
         self._default_top_k = default_top_k
         self._reranking_service = reranking_service
