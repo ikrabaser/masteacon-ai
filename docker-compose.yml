@@ -49,6 +49,9 @@ services:
     environment:
       DATABASE_URL: postgresql+asyncpg://postgres:postgres@postgres:5432/ai_knowledge_assistant
       REDIS_URL: redis://redis:6379/0
+      # Only `api` runs migrations — see docker-entrypoint.sh for why running
+      # them from both services concurrently is unsafe.
+      RUN_MIGRATIONS: "false"
     command: celery -A app.tasks.celery_app worker --loglevel=info --concurrency=2
     volumes:
       - ./uploads:/app/uploads

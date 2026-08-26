@@ -1,0 +1,16 @@
+# Keep the build context small and stable — without this, `docker compose
+# build` was sending the entire .git history and the frontend's node_modules/
+# dist as part of the API/worker build context, which is slow and has been
+# observed to intermittently fail ("invalid file request ...") on large,
+# frequently-changing directories like .git.
+.git/
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+frontend/node_modules/
+frontend/dist/
+uploads/
+.env
+.env.*
+!.env.example
