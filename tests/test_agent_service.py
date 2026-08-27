@@ -66,3 +66,76 @@ async def test_agent_surfaces_a_failed_tool_call_without_crashing() -> None:
 
     assert response.tool_calls[0].success is False
     assert response.answer == "I could not find that information."
+
+
+@pytest.mark.asyncio
+async def test_agent_asks_again_after_a_tool_call_and_can_answer_directly() -> None:
+    """A genuine multi-round loop: the model calls a tool, is asked again with
+    that tool's result folded in, and this time answers directly instead of
+    the old single-round design's forced complete() call."""
+    workspace_repository = FakeWorkspaceRepository()
+    workspace_service = WorkspaceService(workspace_repository)
+    await workspace_service.create(name="My Workspace", owner_id=OWNER_ID)
+
+    registry = ToolRegistry([ListWorkspacesTool(workspace_service)])
+    decisions = [
+        ToolCallDecision(
+            text=None, tool_calls=[RequestedToolCall(id="call-1", name="list_workspaces", arguments={})]
+        ),
+        ToolCallDecision(text="You have exactly one workspace: My Workspace.", tool_calls=[]),
+    ]
+    chat_provider = FakeChatProvider(tool_decisions=decisions)
+    tool_execution_service = ToolExecutionService(registry)
+    agent = AgentService(
+        chat_provider=chat_provider, tool_registry=registry, tool_execution_service=tool_execution_service
+    )
+
+    response = await agent.ask("What workspaces do I have?", user_id=OWNER_ID)
+
+    assert response.answer == "You have exactly one workspace: My Workspace."
+    assert len(response.tool_calls) == 1
+    # The second round's decision prompt must have seen the first round's tool result.
+    assert "My Workspace" in chat_provider.user_prompts[1]
+
+
+@pytest.mark.asyncio
+async def test_agent_stops_at_max_iterations_and_forces_a_final_answer() -> None:
+    """The model keeps asking for a *new*, distinct tool call every round —
+    never repeating, never stopping on its own — so only the max_iterations
+    bound should end this."""
+    from pydantic import BaseModel
+
+    from app.tools.base import BaseTool
+
+    class _EchoArgs(BaseModel):
+        index: int
+
+    class _EchoTool(BaseTool):
+        name = "echo"
+        description = "Echoes back the given index."
+        args_model = _EchoArgs
+
+        async def execute(self, args: _EchoArgs, context) -> dict:
+            return {"index": args.index}
+
+    registry = ToolRegistry([_EchoTool()])
+    decisions = [
+        ToolCallDecision(
+            text=None, tool_calls=[RequestedToolCall(id=f"call-{i}", name="echo", arguments={"index": i})]
+        )
+        for i in range(10)
+    ]
+    chat_provider = FakeChatProvider(tool_decisions=decisions, answer="Forced final answer.")
+    tool_execution_service = ToolExecutionService(registry)
+    agent = AgentService(
+        chat_provider=chat_provider,
+        tool_registry=registry,
+        tool_execution_service=tool_execution_service,
+        max_iterations=3,
+    )
+
+    response = await agent.ask("Keep going forever?", user_id=OWNER_ID)
+
+    assert response.answer == "Forced final answer."
+    # Bounded by max_iterations, not the 10 distinct calls the model kept asking for.
+    assert len(response.tool_calls) == 3

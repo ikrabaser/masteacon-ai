@@ -45,7 +45,9 @@ from app.tools.get_document_tool import GetDocumentTool
 from app.tools.list_documents_tool import ListDocumentsTool
 from app.tools.list_workspaces_tool import ListWorkspacesTool
 from app.tools.registry import ToolRegistry
+from app.tools.search_knowledge_tool import SearchKnowledgeTool
 from app.tools.summarize_document_tool import SummarizeDocumentTool
+from app.tools.workspace_stats_tool import WorkspaceStatsTool
 
 _bearer_scheme = HTTPBearer(auto_error=False)
 
@@ -294,6 +296,7 @@ def get_tool_registry(
     workspace_service: WorkspaceService = Depends(get_workspace_service),
     chunk_repository: ChunkRepository = Depends(get_chunk_repository),
     chat_provider: ChatProvider = Depends(get_chat_provider),
+    retrieval_service: RetrievalService = Depends(get_retrieval_service),
 ) -> ToolRegistry:
     return ToolRegistry(
         [
@@ -301,6 +304,8 @@ def get_tool_registry(
             ListDocumentsTool(document_service, workspace_service),
             GetDocumentTool(document_service, workspace_service),
             SummarizeDocumentTool(document_service, workspace_service, chunk_repository, chat_provider),
+            SearchKnowledgeTool(retrieval_service, workspace_service),
+            WorkspaceStatsTool(document_service, workspace_service),
         ]
     )
 
@@ -312,6 +317,7 @@ def get_tool_execution_service(
 
 
 def get_agent_service(
+    settings: Settings = Depends(get_settings),
     chat_provider: ChatProvider = Depends(get_chat_provider),
     tool_registry: ToolRegistry = Depends(get_tool_registry),
     tool_execution_service: ToolExecutionService = Depends(get_tool_execution_service),
@@ -320,4 +326,5 @@ def get_agent_service(
         chat_provider=chat_provider,
         tool_registry=tool_registry,
         tool_execution_service=tool_execution_service,
+        max_iterations=settings.agent_max_iterations,
     )

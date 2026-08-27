@@ -42,17 +42,25 @@ class FakeChatProvider(ChatProvider):
         self,
         answer: str = "This is a fake answer based on the given context.",
         tool_decision: ToolCallDecision | None = None,
+        tool_decisions: list[ToolCallDecision] | None = None,
         raise_on_complete: Exception | None = None,
     ) -> None:
         self.answer = answer
         self.last_system_prompt: str | None = None
         self.last_user_prompt: str | None = None
+        self.user_prompts: list[str] = []
         self._tool_decision = tool_decision
+        # A queue of decisions to return across successive decide_tool_calls()
+        # calls — for testing a multi-round agent loop. The last entry repeats
+        # once exhausted, so a test doesn't have to predict the exact round count.
+        self._tool_decisions = list(tool_decisions) if tool_decisions is not None else None
+        self._decision_call_count = 0
         self._raise_on_complete = raise_on_complete
 
     async def complete(self, system_prompt: str, user_prompt: str) -> str:
         self.last_system_prompt = system_prompt
         self.last_user_prompt = user_prompt
+        self.user_prompts.append(user_prompt)
         if self._raise_on_complete is not None:
             raise self._raise_on_complete
         return self.answer
@@ -60,6 +68,11 @@ class FakeChatProvider(ChatProvider):
     async def decide_tool_calls(self, system_prompt, user_prompt, tools) -> ToolCallDecision:
         self.last_system_prompt = system_prompt
         self.last_user_prompt = user_prompt
+        self.user_prompts.append(user_prompt)
+        if self._tool_decisions is not None:
+            index = min(self._decision_call_count, len(self._tool_decisions) - 1)
+            self._decision_call_count += 1
+            return self._tool_decisions[index]
         if self._tool_decision is not None:
             return self._tool_decision
         return ToolCallDecision(text=self.answer, tool_calls=[])

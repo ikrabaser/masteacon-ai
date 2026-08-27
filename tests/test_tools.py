@@ -2,6 +2,8 @@
 import pytest
 
 from app.services.document_service import DocumentService
+from app.services.embedding_service import EmbeddingService
+from app.services.retrieval_service import RetrievalService
 from app.services.tool_execution_service import ToolExecutionService
 from app.services.workspace_service import WorkspaceService
 from app.tools.base import ToolContext
@@ -9,7 +11,13 @@ from app.tools.get_document_tool import GetDocumentTool
 from app.tools.list_documents_tool import ListDocumentsTool
 from app.tools.list_workspaces_tool import ListWorkspacesTool
 from app.tools.registry import ToolRegistry
-from tests.fakes import FakeDocumentRepository, FakeWorkspaceRepository
+from app.tools.search_knowledge_tool import SearchKnowledgeTool
+from tests.fakes import (
+    FakeChunkRepository,
+    FakeDocumentRepository,
+    FakeEmbeddingProvider,
+    FakeWorkspaceRepository,
+)
 
 OWNER_ID = 1
 OTHER_USER_ID = 2
@@ -82,6 +90,87 @@ async def test_get_document_tool_rejects_a_non_owner() -> None:
     with pytest.raises(WorkspaceNotFoundError):
         await tool.execute(
             tool.args_model(workspace_id=workspace_id, document_id=document.id),
+            ToolContext(user_id=OTHER_USER_ID),
+        )
+
+
+@pytest.mark.asyncio
+async def test_workspace_stats_tool_reports_counts_by_status() -> None:
+    workspace_service, document_service, workspace_id = await _seed()
+    await document_service._documents.create(
+        filename="a.txt", stored_filename="a1.txt", content_type="text/plain", workspace_id=workspace_id
+    )
+    doc2 = await document_service._documents.create(
+        filename="b.txt", stored_filename="b1.txt", content_type="text/plain", workspace_id=workspace_id
+    )
+    from app.models.document import DocumentStatus
+
+    await document_service._documents.update_status(doc2, DocumentStatus.INDEXED)
+
+    from app.tools.workspace_stats_tool import WorkspaceStatsTool
+
+    tool = WorkspaceStatsTool(document_service, workspace_service)
+    result = await tool.execute(tool.args_model(workspace_id=workspace_id), ToolContext(user_id=OWNER_ID))
+
+    assert result["total_documents"] == 2
+    assert result["by_status"]["indexed"] == 1
+    assert result["by_status"]["uploaded"] == 1
+
+
+@pytest.mark.asyncio
+async def test_workspace_stats_tool_rejects_a_non_owner() -> None:
+    workspace_service, document_service, workspace_id = await _seed()
+    from app.core.exceptions import WorkspaceNotFoundError
+    from app.tools.workspace_stats_tool import WorkspaceStatsTool
+
+    tool = WorkspaceStatsTool(document_service, workspace_service)
+
+    with pytest.raises(WorkspaceNotFoundError):
+        await tool.execute(tool.args_model(workspace_id=workspace_id), ToolContext(user_id=OTHER_USER_ID))
+
+
+@pytest.mark.asyncio
+async def test_search_knowledge_tool_returns_matching_chunks() -> None:
+    from tests.fakes import FakeChunkRow
+
+    workspace_service, _, workspace_id = await _seed()
+    chunk_repository = FakeChunkRepository(
+        [FakeChunkRow(1, "handbook.txt", 0, "Annual leave is 14 days.", 0.9, workspace_id=workspace_id)]
+    )
+    embedding_service = EmbeddingService(FakeEmbeddingProvider())
+    retrieval_service = RetrievalService(
+        chunk_repository=chunk_repository,
+        embedding_service=embedding_service,
+        default_top_k=5,
+        similarity_threshold=0.1,
+    )
+
+    tool = SearchKnowledgeTool(retrieval_service, workspace_service)
+    result = await tool.execute(
+        tool.args_model(workspace_id=workspace_id, query="How many vacation days?"),
+        ToolContext(user_id=OWNER_ID),
+    )
+
+    assert result["results"][0]["filename"] == "handbook.txt"
+    assert "leave" in result["results"][0]["content"]
+
+
+@pytest.mark.asyncio
+async def test_search_knowledge_tool_rejects_a_non_owner() -> None:
+    workspace_service, _, workspace_id = await _seed()
+    retrieval_service = RetrievalService(
+        chunk_repository=FakeChunkRepository(),
+        embedding_service=EmbeddingService(FakeEmbeddingProvider()),
+        default_top_k=5,
+        similarity_threshold=0.1,
+    )
+    tool = SearchKnowledgeTool(retrieval_service, workspace_service)
+
+    from app.core.exceptions import WorkspaceNotFoundError
+
+    with pytest.raises(WorkspaceNotFoundError):
+        await tool.execute(
+            tool.args_model(workspace_id=workspace_id, query="anything"),
             ToolContext(user_id=OTHER_USER_ID),
         )
 
