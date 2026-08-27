@@ -73,6 +73,12 @@ class Settings(BaseSettings):
     retrieval_candidate_count: int = 20
     rerank_top_k: int = 5
 
+    # Agent — bounds the number of sequential tool-calling rounds AgentService
+    # will run before it is forced to produce a final answer from whatever
+    # tool results it has gathered so far, regardless of what the model
+    # keeps asking for.
+    agent_max_iterations: int = 5
+
     # Hybrid search — fuses vector similarity with PostgreSQL full-text (keyword)
     # search via Reciprocal Rank Fusion, so an exact technical term a pure
     # embedding match might miss (e.g. an error code) still surfaces. Disabled
@@ -115,8 +121,17 @@ class Settings(BaseSettings):
     conversation_history_max_messages: int = 10
     conversation_history_max_tokens: int = 2000
 
-    # Frontend origins allowed to call this API (comma-separated).
-    cors_origins: str = "http://localhost:5173,http://localhost:3000"
+    # Frontend origins allowed to call this API (comma-separated). Includes
+    # both `localhost` and `127.0.0.1` variants by default — browsers treat
+    # them as different origins for CORS even though they're the same
+    # machine, and it's easy to end up on one or the other (a bookmark, a
+    # tool that opens 127.0.0.1, Docker Desktop's own printed URL, ...),
+    # which otherwise surfaces as an opaque "Failed to fetch" in the UI with
+    # a CORS error visible only in the browser console.
+    cors_origins: str = (
+        "http://localhost:5173,http://127.0.0.1:5173,"
+        "http://localhost:3000,http://127.0.0.1:3000"
+    )
 
     @property
     def cors_allowed_origins(self) -> list[str]:
