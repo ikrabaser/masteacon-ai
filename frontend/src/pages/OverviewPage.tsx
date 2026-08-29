@@ -97,6 +97,7 @@ export function OverviewPage() {
     ConversationResponse[]
   >([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const [prompt, setPrompt] = useState("");
   const [asking, setAsking] = useState(false);
@@ -108,12 +109,13 @@ export function OverviewPage() {
     }[]
   >([]);
 
-  useEffect(() => {
+  function loadOverviewData() {
     if (!activeWorkspace) {
       return;
     }
 
     setIsLoading(true);
+    setLoadError(null);
 
     Promise.all([
       api.listDocuments(activeWorkspace.id),
@@ -123,7 +125,22 @@ export function OverviewPage() {
         setDocuments(docs);
         setConversations(convos);
       })
+      .catch(() => {
+        // Most commonly a network failure (API unreachable, CORS, etc.) —
+        // never let it surface as an unhandled rejection / raw "Failed to
+        // fetch" past this page; show a retryable banner instead.
+        setLoadError(
+          locale === "tr"
+            ? "Veriler yüklenemedi. Sunucuya ulaşılamıyor olabilir."
+            : "Couldn't load your data. The server may be unreachable.",
+        );
+      })
       .finally(() => setIsLoading(false));
+  }
+
+  useEffect(() => {
+    loadOverviewData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeWorkspace]);
 
   const indexedCount = documents.filter(
@@ -419,6 +436,16 @@ export function OverviewPage() {
 
   return (
     <div className="kc-page">
+      {loadError && (
+        <div className="kc-error-banner" role="alert">
+          <WarningIcon width={16} height={16} />
+          <span>{loadError}</span>
+          <button type="button" onClick={loadOverviewData}>
+            {locale === "tr" ? "Tekrar dene" : "Retry"}
+          </button>
+        </div>
+      )}
+
       <div className="kc-topbar">
         <div className="kc-workspace-chip">
           <FolderIcon width={15} height={15} />

@@ -10,6 +10,7 @@ import { DocumentsPage } from "./pages/DocumentsPage";
 import { LandingPage } from "./pages/LandingPage";
 import { LoginPage } from "./pages/LoginPage";
 import { NotFoundPage } from "./pages/NotFoundPage";
+import { ObservabilityPage } from "./pages/ObservabilityPage";
 import { OverviewPage } from "./pages/OverviewPage";
 import { RegisterPage } from "./pages/RegisterPage";
 import { VerifyEmailPage } from "./pages/VerifyEmailPage";
@@ -38,6 +39,7 @@ export default function App() {
             <Route path="/documents" element={<DocumentsPage />} />
             <Route path="/chat" element={<ChatPage />} />
             <Route path="/agent" element={<AgentPage />} />
+            <Route path="/observability" element={<ObservabilityPage />} />
           </Route>
 
           <Route path="*" element={<NotFoundPage />} />

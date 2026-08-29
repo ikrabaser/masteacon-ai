@@ -166,3 +166,62 @@ async def test_ask_treats_a_failed_groundedness_check_as_ungraded_not_ungrounded
     assert response.grounded is None
     assert response.answer == "The annual leave is 14 days."
     assert len(response.sources) == 1
+
+
+class _RecordingObservabilityRecorder:
+    """Captures record_event() calls for assertions, instead of writing to a DB."""
+
+    def __init__(self) -> None:
+        self.calls: list[dict] = []
+
+    async def record_event(self, **kwargs) -> None:
+        self.calls.append(kwargs)
+
+
+@pytest.mark.asyncio
+async def test_ask_records_an_observability_event_when_a_recorder_is_wired() -> None:
+    rows = [FakeChunkRow(1, "handbook.pdf", 4, "Annual leave policy is 14 days.", 0.91)]
+    retrieval_service = RetrievalService(
+        chunk_repository=FakeChunkRepository(rows),
+        embedding_service=EmbeddingService(FakeEmbeddingProvider()),
+        default_top_k=5,
+        similarity_threshold=0.3,
+    )
+    recorder = _RecordingObservabilityRecorder()
+    rag_service = RagService(
+        retrieval_service=retrieval_service,
+        chat_provider=FakeChatProvider(answer="The annual leave is 14 days."),
+        observability_recorder=recorder,
+    )
+
+    await rag_service.ask("What is the annual leave policy?", workspace_id=WORKSPACE_ID, user_id=42)
+
+    assert len(recorder.calls) == 1
+    call = recorder.calls[0]
+    assert call["event_type"] == "rag_request"
+    assert call["user_id"] == 42
+    assert call["workspace_id"] == WORKSPACE_ID
+    assert call["success"] is True
+    assert call["duration_ms"] >= 0
+    assert "retrieved_chunk_count" in call["extra"]
+
+
+@pytest.mark.asyncio
+async def test_ask_does_not_record_when_user_id_is_unknown() -> None:
+    rows = [FakeChunkRow(1, "handbook.pdf", 4, "Annual leave policy is 14 days.", 0.91)]
+    retrieval_service = RetrievalService(
+        chunk_repository=FakeChunkRepository(rows),
+        embedding_service=EmbeddingService(FakeEmbeddingProvider()),
+        default_top_k=5,
+        similarity_threshold=0.3,
+    )
+    recorder = _RecordingObservabilityRecorder()
+    rag_service = RagService(
+        retrieval_service=retrieval_service,
+        chat_provider=FakeChatProvider(answer="The annual leave is 14 days."),
+        observability_recorder=recorder,
+    )
+
+    await rag_service.ask("What is the annual leave policy?", workspace_id=WORKSPACE_ID)  # no user_id
+
+    assert recorder.calls == []

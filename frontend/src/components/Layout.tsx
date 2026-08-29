@@ -5,6 +5,7 @@ import { useAuth } from "../context/AuthContext";
 import { useI18n } from "../context/I18nContext";
 
 import {
+  ChartIcon,
   ChatIcon,
   FileIcon,
   FolderIcon,
@@ -37,6 +38,7 @@ export function Layout() {
           agent: "AI Ajanı",
           library: "Bilgi Kütüphanesi",
           workspaces: "Çalışma Alanları",
+          observability: "Gözlemlenebilirlik",
           account: "KNOWLEDGE ACCOUNT",
           openMenu: "Menüyü aç",
           closeMenu: "Menüyü kapat",
@@ -49,6 +51,7 @@ export function Layout() {
           agent: "AI Agent",
           library: "Knowledge Library",
           workspaces: "Workspaces",
+          observability: "Observability",
           account: "KNOWLEDGE ACCOUNT",
           openMenu: "Open menu",
           closeMenu: "Close menu",
@@ -189,6 +192,17 @@ export function Layout() {
             >
               <FolderIcon />
               <span>{labels.workspaces}</span>
+            </NavLink>
+
+            <NavLink
+              to="/observability"
+              className={({ isActive }) =>
+                isActive ? "active" : ""
+              }
+              onClick={closeMobileMenu}
+            >
+              <ChartIcon />
+              <span>{labels.observability}</span>
             </NavLink>
           </nav>
         </div>

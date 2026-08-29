@@ -159,3 +159,10 @@ export const RocketIcon = (p: SVGProps<SVGSVGElement>) => (
     <path d="M9.5 15 8 19l2.2-1M14.5 15 16 19l-2.2-1" />
   </Icon>
 );
+
+export const ChartIcon = (p: SVGProps<SVGSVGElement>) => (
+  <Icon {...p}>
+    <path d="M4 20V10M11 20V4M18 20v-7" />
+    <path d="M3 20h18" />
+  </Icon>
+);

@@ -7,6 +7,7 @@ import type {
   DocumentResponse,
   DocumentUploadResponse,
   MessageCreateResponse,
+  ObservabilitySummaryResponse,
   SearchResponse,
   TokenResponse,
   UserResponse,
@@ -138,5 +139,15 @@ export function resendVerification(
   return apiRequest("/api/v1/auth/resend-verification", {
     method: "POST",
     json: { email },
+  });
+}
+
+// --- Observability ---
+
+export function getObservabilitySummary(
+  days = 7,
+): Promise<ObservabilitySummaryResponse> {
+  return apiRequest("/api/v1/observability/summary", {
+    query: { days },
   });
 }
