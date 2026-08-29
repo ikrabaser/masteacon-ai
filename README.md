@@ -415,5 +415,12 @@ either — that's why `--with-generation` is opt-in and never runs as part of th
   ownership isn't just checked at the route, it's structurally impossible to bypass in retrieval.
 - Agent tool calls are authorization-checked server-side before execution, independent of what
   the model itself decides or is told to do by document/user content.
+- **Prompt-injection defense is structural, not just persuasive.** The RAG and agent system
+  prompts explicitly instruct the model to treat retrieved document content and tool results as
+  data, never as instructions — but the real guarantee is that authorization is enforced
+  server-side on every tool call regardless of what the model was convinced to request; an
+  attacker who fully compromises the model's behavior (via a poisoned document or a crafted
+  question) still cannot make it access another user's workspace or call an unregistered tool.
+  See `tests/test_prompt_injection_hardening.py`, which simulates exactly that attack end-to-end.
 - Structured logs record counts, ids, durations and booleans only — never API keys, prompts,
   questions, answers or document content.
