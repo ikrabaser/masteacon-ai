@@ -263,6 +263,13 @@ This starts five services:
 The API is available at `http://localhost:8000`, with interactive docs at
 `http://localhost:8000/docs`. The web app is available at `http://localhost:5173`.
 
+The frontend calls the API same-origin by default (`nginx.conf` proxies `/api/*` to the `api`
+container) — no CORS involved, and no API domain baked into the built JS. Every service's host
+port is bound to `127.0.0.1` only, in dev and in production alike.
+
+**Deploying to a real server?** See [`DEPLOYMENT.md`](DEPLOYMENT.md) — a VPS walkthrough using
+the `docker-compose.prod.yml` overlay, which adds Caddy for automatic HTTPS.
+
 ## Frontend
 
 A React + Vite + TypeScript single-page app in [`frontend/`](frontend), covering:

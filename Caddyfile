@@ -1,0 +1,12 @@
+# Caddy config for production. Caddy issues and renews the TLS certificate
+# for {$DOMAIN} automatically (via Let's Encrypt) — no certbot, no manual
+# renewal cron job. Set DOMAIN in your .env (see docker-compose.prod.yml).
+{$DOMAIN} {
+    reverse_proxy frontend:80
+
+    encode gzip
+
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains"
+    }
+}

@@ -1,0 +1,32 @@
+# Production overlay — layer this on top of docker-compose.yml:
+#
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+#
+# The base file already binds postgres/redis/api/frontend's host ports to
+# 127.0.0.1 (loopback only) — nothing here needs to override that. This
+# overlay just adds Caddy, which is the one service actually reachable from
+# the internet (ports 80/443). Caddy terminates TLS (automatic Let's
+# Encrypt certificate for DOMAIN, auto-renewed) and reverse-proxies to the
+# `frontend` container over the internal Docker network by its service
+# name — not through frontend's host-published port — which in turn proxies
+# /api/* to `api` internally (see frontend/nginx.conf). The whole app ends
+# up served from one HTTPS origin.
+services:
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    depends_on:
+      - frontend
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMAIN: ${DOMAIN:?Set DOMAIN in .env to the hostname this server will be reached at, e.g. app.example.com}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+
+volumes:
+  caddy_data:
+  caddy_config:

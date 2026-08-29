@@ -25,7 +25,10 @@ interface RequestOptions {
 }
 
 function buildUrl(path: string, query?: RequestOptions["query"]): string {
-  const url = new URL(`${API_BASE_URL}${path}`);
+  // `new URL()` throws on a bare relative string with no base — pass
+  // window.location.origin explicitly so an empty API_BASE_URL (same-origin
+  // deployments, see docker-compose.yml's VITE_API_BASE_URL) still resolves.
+  const url = new URL(`${API_BASE_URL}${path}`, window.location.origin);
   if (query) {
     for (const [key, value] of Object.entries(query)) {
       if (value !== undefined) url.searchParams.set(key, String(value));
