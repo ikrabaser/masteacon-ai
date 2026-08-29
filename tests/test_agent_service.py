@@ -139,3 +139,41 @@ async def test_agent_stops_at_max_iterations_and_forces_a_final_answer() -> None
     assert response.answer == "Forced final answer."
     # Bounded by max_iterations, not the 10 distinct calls the model kept asking for.
     assert len(response.tool_calls) == 3
+
+
+class _RecordingObservabilityRecorder:
+    """Captures record_event() calls for assertions, instead of writing to a DB."""
+
+    def __init__(self) -> None:
+        self.calls: list[dict] = []
+
+    async def record_event(self, **kwargs) -> None:
+        self.calls.append(kwargs)
+
+
+@pytest.mark.asyncio
+async def test_agent_records_an_observability_event_per_turn_not_per_tool_call() -> None:
+    decision = ToolCallDecision(
+        text=None, tool_calls=[RequestedToolCall(id="call-1", name="list_workspaces", arguments={})]
+    )
+    workspace_repository = FakeWorkspaceRepository()
+    workspace_service = WorkspaceService(workspace_repository)
+    await workspace_service.create(name="My Workspace", owner_id=OWNER_ID)
+    registry = ToolRegistry([ListWorkspacesTool(workspace_service)])
+    chat_provider = FakeChatProvider(tool_decision=decision, answer="You have 1 workspace.")
+    recorder = _RecordingObservabilityRecorder()
+    agent = AgentService(
+        chat_provider=chat_provider,
+        tool_registry=registry,
+        tool_execution_service=ToolExecutionService(registry),
+        observability_recorder=recorder,
+    )
+
+    await agent.ask("What workspaces do I have?", user_id=OWNER_ID)
+
+    assert len(recorder.calls) == 1
+    call = recorder.calls[0]
+    assert call["event_type"] == "agent_request"
+    assert call["user_id"] == OWNER_ID
+    assert call["success"] is True
+    assert call["extra"]["tool_call_count"] == 1

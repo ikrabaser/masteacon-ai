@@ -35,15 +35,18 @@ class ToolExecutionService:
     a clean answer back instead of a 500.
     """
 
-    def __init__(self, registry: ToolRegistry) -> None:
+    def __init__(self, registry: ToolRegistry, observability_recorder=None) -> None:
         self._registry = registry
+        self._observability_recorder = observability_recorder
 
     async def execute(
         self, tool_call_id: str, name: str, raw_arguments: dict, context: ToolContext
     ) -> ToolExecutionResult:
         started_at = time.perf_counter()
+        workspace_id: int | None = None
 
-        def _log(success: bool, error: str | None = None) -> None:
+        async def _log(success: bool, error: str | None = None) -> None:
+            duration_ms = round((time.perf_counter() - started_at) * 1000, 2)
             logger.info(
                 "Tool call finished" if success else "Tool call failed",
                 extra={
@@ -51,33 +54,44 @@ class ToolExecutionService:
                     "tool_name": name,
                     "user_id": context.user_id,
                     "success": success,
-                    "duration_ms": round((time.perf_counter() - started_at) * 1000, 2),
+                    "duration_ms": duration_ms,
                     **({"error_type": error} if error else {}),
                 },
             )
+            if self._observability_recorder is not None:
+                await self._observability_recorder.record_event(
+                    event_type="tool_call",
+                    user_id=context.user_id,
+                    workspace_id=workspace_id,
+                    success=success,
+                    duration_ms=duration_ms,
+                    extra={"tool_name": name, **({"error_type": error} if error else {})},
+                )
 
         tool = self._registry.get(name)
         if tool is None:
-            _log(False, "unknown_tool")
+            await _log(False, "unknown_tool")
             return ToolExecutionResult(tool_call_id, name, False, None, f"Unknown tool '{name}'.")
 
         try:
             args = tool.args_model.model_validate(raw_arguments)
         except ValidationError as exc:
-            _log(False, "invalid_arguments")
+            await _log(False, "invalid_arguments")
             return ToolExecutionResult(tool_call_id, name, False, None, f"Invalid arguments: {exc}")
+
+        workspace_id = getattr(args, "workspace_id", None)
 
         try:
             result = await tool.execute(args, context)
         except AppError as exc:
             # Includes authorization failures (e.g. WorkspaceNotFoundError for a
             # workspace/document the caller doesn't own) — logged, not leaked as a 500.
-            _log(False, "app_error")
+            await _log(False, "app_error")
             return ToolExecutionResult(tool_call_id, name, False, None, exc.message)
         except Exception:
             logger.exception("Unexpected error executing tool '%s'", name, extra={"tool_name": name, "user_id": context.user_id})
-            _log(False, "unexpected_error")
+            await _log(False, "unexpected_error")
             return ToolExecutionResult(tool_call_id, name, False, None, "Tool execution failed.")
 
-        _log(True)
+        await _log(True)
         return ToolExecutionResult(tool_call_id, name, True, result, None)

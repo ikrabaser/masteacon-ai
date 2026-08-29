@@ -489,3 +489,27 @@ class FakeTurnstileService:
             success=self.success,
             action="register" if self.success else None,
         )
+
+
+class FakeObservabilityEvent:
+    """Attribute-access record shape matching the real ObservabilityEvent model,
+    for FakeObservabilityEventRepository.list_by_user() results."""
+
+    def __init__(self, **kwargs) -> None:
+        self.created_at = kwargs.pop("created_at", None) or datetime.now(timezone.utc)
+        self.__dict__.update(kwargs)
+
+
+class FakeObservabilityEventRepository:
+    """In-memory stand-in for ObservabilityEventRepository."""
+
+    def __init__(self) -> None:
+        self.created: list[FakeObservabilityEvent] = []
+
+    async def create(self, **kwargs) -> FakeObservabilityEvent:
+        event = FakeObservabilityEvent(**kwargs)
+        self.created.append(event)
+        return event
+
+    async def list_by_user(self, user_id: int, since: datetime) -> list[FakeObservabilityEvent]:
+        return [event for event in self.created if event.user_id == user_id and event.created_at >= since]

@@ -19,6 +19,7 @@ from app.repositories.chunk_repository import ChunkRepository
 from app.repositories.conversation_repository import ConversationRepository
 from app.repositories.document_repository import DocumentRepository
 from app.repositories.message_repository import MessageRepository
+from app.repositories.observability_event_repository import ObservabilityEventRepository
 from app.repositories.user_repository import UserRepository
 from app.repositories.workspace_repository import WorkspaceRepository
 from app.services.auth_service import AuthService
@@ -32,6 +33,7 @@ from app.services.email_service import EmailService
 from app.services.agent_service import AgentService
 from app.services.cross_encoder_reranking_service import CrossEncoderRerankingService
 from app.services.indexing_dispatcher import IndexingDispatcher
+from app.services.observability_service import ObservabilityService
 from app.evaluation.generation_evaluator import GenerationEvaluator
 from app.services.query_rewriting_service import QueryRewritingService
 from app.services.rag_service import GroundednessChecker, RagService
@@ -252,17 +254,29 @@ def get_groundedness_checker(settings: Settings = Depends(get_settings)) -> Grou
     return GenerationEvaluator(create_chat_provider(settings))
 
 
+def get_observability_event_repository(session: AsyncSession = Depends(get_db)) -> ObservabilityEventRepository:
+    return ObservabilityEventRepository(session)
+
+
+def get_observability_service(
+    repository: ObservabilityEventRepository = Depends(get_observability_event_repository),
+) -> ObservabilityService:
+    return ObservabilityService(repository)
+
+
 def get_rag_service(
     settings: Settings = Depends(get_settings),
     retrieval_service: RetrievalService = Depends(get_retrieval_service),
     chat_provider: ChatProvider = Depends(get_chat_provider),
     groundedness_checker: GroundednessChecker | None = Depends(get_groundedness_checker),
+    observability_service: ObservabilityService = Depends(get_observability_service),
 ) -> RagService:
     return RagService(
         retrieval_service=retrieval_service,
         chat_provider=chat_provider,
         groundedness_checker=groundedness_checker,
         groundedness_threshold=settings.groundedness_threshold,
+        observability_recorder=observability_service,
     )
 
 
@@ -312,8 +326,9 @@ def get_tool_registry(
 
 def get_tool_execution_service(
     tool_registry: ToolRegistry = Depends(get_tool_registry),
+    observability_service: ObservabilityService = Depends(get_observability_service),
 ) -> ToolExecutionService:
-    return ToolExecutionService(tool_registry)
+    return ToolExecutionService(tool_registry, observability_recorder=observability_service)
 
 
 def get_agent_service(
@@ -321,10 +336,12 @@ def get_agent_service(
     chat_provider: ChatProvider = Depends(get_chat_provider),
     tool_registry: ToolRegistry = Depends(get_tool_registry),
     tool_execution_service: ToolExecutionService = Depends(get_tool_execution_service),
+    observability_service: ObservabilityService = Depends(get_observability_service),
 ) -> AgentService:
     return AgentService(
         chat_provider=chat_provider,
         tool_registry=tool_registry,
         tool_execution_service=tool_execution_service,
         max_iterations=settings.agent_max_iterations,
+        observability_recorder=observability_service,
     )

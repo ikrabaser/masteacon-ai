@@ -100,3 +100,23 @@ export interface AgentAskResponse {
   answer: string;
   tool_calls: ToolCallSummary[];
 }
+
+export interface DailyCountItem {
+  date: string;
+  count: number;
+}
+
+export interface ToolUsageItem {
+  tool_name: string;
+  count: number;
+}
+
+export interface ObservabilitySummaryResponse {
+  days: number;
+  total_requests: number;
+  success_rate: number;
+  avg_duration_ms: number;
+  events_by_type: Record<string, number>;
+  daily_counts: DailyCountItem[];
+  top_tools: ToolUsageItem[];
+}

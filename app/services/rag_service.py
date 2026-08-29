@@ -48,6 +48,28 @@ class GroundednessChecker(Protocol):
     async def score_faithfulness(self, context: str, answer: str) -> float: ...
 
 
+class ObservabilityRecorder(Protocol):
+    """Anything that can persist a structured event for the observability dashboard.
+
+    Satisfied structurally by `app.services.observability_service.ObservabilityService`.
+    Recording is always best-effort from the caller's perspective — see that
+    class's own docstring.
+    """
+
+    async def record_event(
+        self,
+        *,
+        event_type: str,
+        user_id: int,
+        success: bool,
+        duration_ms: float,
+        workspace_id: int | None = None,
+        provider: str | None = None,
+        model: str | None = None,
+        extra: dict | None = None,
+    ) -> None: ...
+
+
 @dataclass(frozen=True)
 class HistoryTurn:
     """One prior turn of a conversation, fed back into the prompt for context."""
@@ -65,11 +87,28 @@ class RagService:
         chat_provider: ChatProvider,
         groundedness_checker: GroundednessChecker | None = None,
         groundedness_threshold: float = 0.5,
+        observability_recorder: ObservabilityRecorder | None = None,
     ) -> None:
         self._retrieval_service = retrieval_service
         self._chat_provider = chat_provider
         self._groundedness_checker = groundedness_checker
         self._groundedness_threshold = groundedness_threshold
+        self._observability_recorder = observability_recorder
+
+    async def _record(self, user_id: int | None, workspace_id: int, log_fields: dict) -> None:
+        if self._observability_recorder is None or user_id is None:
+            return
+        excluded = {"event", "user_id", "workspace_id", "provider", "model", "success", "total_duration_ms"}
+        await self._observability_recorder.record_event(
+            event_type="rag_request",
+            user_id=user_id,
+            workspace_id=workspace_id,
+            provider=log_fields.get("provider"),
+            model=log_fields.get("model"),
+            success=log_fields["success"],
+            duration_ms=log_fields["total_duration_ms"],
+            extra={key: value for key, value in log_fields.items() if key not in excluded},
+        )
 
     def _build_prompt(self, question: str, chunks: list, history: list[HistoryTurn]) -> str:
         context_blocks = "\n\n".join(
@@ -114,6 +153,7 @@ class RagService:
             log_fields["success"] = True
             log_fields["grounded"] = False
             logger.info("RAG request completed with no relevant context", extra=log_fields)
+            await self._record(user_id, workspace_id, log_fields)
             return AskResponse(answer=NO_CONTEXT_ANSWER, sources=[], grounded=None)
 
         prompt = self._build_prompt(question, chunks, history or [])
@@ -125,6 +165,7 @@ class RagService:
             log_fields["total_duration_ms"] = round((time.perf_counter() - total_started_at) * 1000, 2)
             log_fields["success"] = False
             logger.warning("RAG request failed during generation", extra=log_fields)
+            await self._record(user_id, workspace_id, log_fields)
             raise ChatProviderError(f"Failed to generate an answer: {exc}") from exc
 
         answer = answer.strip() or NO_CONTEXT_ANSWER
@@ -152,12 +193,14 @@ class RagService:
                 log_fields["success"] = True
                 log_fields["grounded"] = False
                 logger.info("RAG request completed but answer failed the groundedness check", extra=log_fields)
+                await self._record(user_id, workspace_id, log_fields)
                 return AskResponse(answer=UNGROUNDED_ANSWER, sources=[], grounded=False)
 
         log_fields["total_duration_ms"] = round((time.perf_counter() - total_started_at) * 1000, 2)
         log_fields["success"] = True
         log_fields["grounded"] = grounded if grounded is not None else True
         logger.info("RAG request completed", extra=log_fields)
+        await self._record(user_id, workspace_id, log_fields)
 
         cited_markers = {int(marker) for marker in _CITATION_MARKER_PATTERN.findall(answer)}
         sources = [

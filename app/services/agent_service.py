@@ -69,11 +69,13 @@ class AgentService:
         tool_registry: ToolRegistry,
         tool_execution_service: ToolExecutionService,
         max_iterations: int = DEFAULT_MAX_ITERATIONS,
+        observability_recorder=None,
     ) -> None:
         self._chat_provider = chat_provider
         self._tool_registry = tool_registry
         self._tool_execution_service = tool_execution_service
         self._max_iterations = max_iterations
+        self._observability_recorder = observability_recorder
 
     async def ask(self, question: str, user_id: int) -> AgentAskResponse:
         total_started_at = time.perf_counter()
@@ -104,7 +106,7 @@ class AgentService:
 
             if not decision.tool_calls:
                 answer = (decision.text or "").strip()
-                self._log(
+                await self._log(
                     user_id=user_id,
                     all_results=all_results,
                     rounds=rounds_with_tool_calls,
@@ -146,7 +148,7 @@ class AgentService:
         answer = await self._chat_provider.complete(FINAL_ANSWER_SYSTEM_PROMPT, follow_up_prompt)
         generation_duration_ms = (time.perf_counter() - generation_started_at) * 1000
 
-        self._log(
+        await self._log(
             user_id=user_id,
             all_results=all_results,
             rounds=rounds_with_tool_calls,
@@ -157,7 +159,7 @@ class AgentService:
         )
         return AgentAskResponse(answer=answer.strip(), tool_calls=all_results)
 
-    def _log(
+    async def _log(
         self,
         *,
         user_id: int,
@@ -168,20 +170,34 @@ class AgentService:
         total_started_at: float,
         stop_reason: str,
     ) -> None:
+        total_duration_ms = round((time.perf_counter() - total_started_at) * 1000, 2)
+        success = all(r.success for r in all_results) if all_results else True
+        log_fields = {
+            "event": "agent_request",
+            "user_id": user_id,
+            "provider": self._chat_provider.provider_name,
+            "model": self._chat_provider.model,
+            "rounds": rounds,
+            "tool_call_count": len(all_results),
+            "tool_names": [r.name for r in all_results],
+            "decision_duration_ms": round(decision_duration_ms, 2),
+            "generation_duration_ms": round(generation_duration_ms, 2),
+            "total_duration_ms": total_duration_ms,
+            "success": success,
+            "stop_reason": stop_reason,
+        }
         logger.info(
             "Agent request completed" if all_results else "Agent request completed without calling any tool",
-            extra={
-                "event": "agent_request",
-                "user_id": user_id,
-                "provider": self._chat_provider.provider_name,
-                "model": self._chat_provider.model,
-                "rounds": rounds,
-                "tool_call_count": len(all_results),
-                "tool_names": [r.name for r in all_results],
-                "decision_duration_ms": round(decision_duration_ms, 2),
-                "generation_duration_ms": round(generation_duration_ms, 2),
-                "total_duration_ms": round((time.perf_counter() - total_started_at) * 1000, 2),
-                "success": all(r.success for r in all_results) if all_results else True,
-                "stop_reason": stop_reason,
-            },
+            extra=log_fields,
         )
+        if self._observability_recorder is not None:
+            excluded = {"event", "user_id", "provider", "model", "success", "total_duration_ms"}
+            await self._observability_recorder.record_event(
+                event_type="agent_request",
+                user_id=user_id,
+                provider=log_fields["provider"],
+                model=log_fields["model"],
+                success=success,
+                duration_ms=total_duration_ms,
+                extra={key: value for key, value in log_fields.items() if key not in excluded},
+            )
