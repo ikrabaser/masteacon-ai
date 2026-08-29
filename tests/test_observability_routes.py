@@ -1,4 +1,6 @@
 """Route-level tests for the observability dashboard endpoint."""
+import asyncio
+
 import pytest
 from fastapi.testclient import TestClient
 
@@ -69,8 +71,6 @@ def test_observability_summary_only_reports_the_callers_own_events(client: TestC
 
     alice_id = 1  # first registered user
     bob_id = 2
-
-    import asyncio
 
     async def _seed():
         await client.observability_events.create(  # type: ignore[attr-defined]
