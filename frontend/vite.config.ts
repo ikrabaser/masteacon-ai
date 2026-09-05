@@ -4,11 +4,11 @@ import { defineConfig } from "vite";
 export default defineConfig({
   plugins: [react()],
   server: {
-    port: 5173,
+    port: Number(process.env.PORT) || undefined,
     host: true,
   },
   preview: {
-    port: 5173,
+    port: Number(process.env.PORT) || undefined,
     host: true,
   },
 });

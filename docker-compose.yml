@@ -3,9 +3,14 @@ services:
     image: pgvector/pgvector:pg16
     restart: unless-stopped
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: ai_knowledge_assistant
+      # Dev-friendly defaults (postgres/postgres) apply only when these
+      # aren't set in .env — set POSTGRES_USER/PASSWORD/DB explicitly for any
+      # deployment that isn't a disposable local dev database. api and
+      # celery_worker build their DATABASE_URL from these same three
+      # variables below, so there is exactly one place credentials live.
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-ai_knowledge_assistant}
     ports:
       # Bound to loopback only — the database must never be reachable from
       # outside this machine, in dev or in production. Service-to-service
@@ -15,7 +20,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -37,7 +42,9 @@ services:
     env_file:
       - .env
     environment:
-      DATABASE_URL: postgresql+asyncpg://postgres:postgres@postgres:5432/ai_knowledge_assistant
+      # Built from the same POSTGRES_* variables the postgres service itself
+      # uses (see above) — change them in .env once, both stay in sync.
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-ai_knowledge_assistant}
       REDIS_URL: redis://redis:6379/0
     ports:
       # Loopback-only, same reasoning as postgres/redis above — in
@@ -53,7 +60,10 @@ services:
       redis:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      # Liveness only (no DB/Redis check) - see app/api/routes/health.py.
+      # A transient Postgres/Redis blip should not flip this container
+      # unhealthy; use GET /health/ready to check actual dependency status.
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health/live')"]
       interval: 15s
       timeout: 5s
       retries: 5
@@ -65,7 +75,7 @@ services:
     env_file:
       - .env
     environment:
-      DATABASE_URL: postgresql+asyncpg://postgres:postgres@postgres:5432/ai_knowledge_assistant
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-ai_knowledge_assistant}
       REDIS_URL: redis://redis:6379/0
       # Only `api` runs migrations — see docker-entrypoint.sh for why running
       # them from both services concurrently is unsafe.
@@ -96,6 +106,12 @@ services:
         # without baking a specific API URL into the built JS bundle.
         VITE_API_BASE_URL: ""
     restart: unless-stopped
+    environment:
+      # Templated into nginx's client_max_body_size at container start (see
+      # frontend/nginx.conf.template) - kept equal to the backend's own
+      # MAX_UPLOAD_SIZE_MB (app/core/config.py) so nginx never rejects an
+      # upload with 413 that the backend would otherwise have accepted.
+      MAX_UPLOAD_SIZE_MB: ${MAX_UPLOAD_SIZE_MB:-20}
     ports:
       # Loopback-only in this base file for the same reason as the other
       # services — visit it directly at http://localhost:5173 in dev. In
