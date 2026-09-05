@@ -769,6 +769,18 @@
 
 /* ---------- Register ---------- */
 
+.masteacon-auth-forgot-link {
+  display: inline-block;
+  margin-top: 8px;
+  color: var(--text-muted);
+  font-size: 11px;
+  text-decoration: none;
+}
+
+.masteacon-auth-forgot-link:hover {
+  color: var(--brand-2);
+}
+
 .masteacon-auth-register {
   margin-top: 21px;
 

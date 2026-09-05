@@ -269,6 +269,10 @@ class FakeUserRepository:
         user.email_verification_expires_at = None
         return user
 
+    async def update_password(self, user: User, password_hash: str) -> User:
+        user.password_hash = password_hash
+        return user
+
     async def commit(self) -> None:
         pass
 
@@ -513,3 +517,79 @@ class FakeObservabilityEventRepository:
 
     async def list_by_user(self, user_id: int, since: datetime) -> list[FakeObservabilityEvent]:
         return [event for event in self.created if event.user_id == user_id and event.created_at >= since]
+
+
+class _FakeHashedTokenRow:
+    """Shared attribute-access row shape for the two fakes below."""
+
+    def __init__(self, id: int, user_id: int, token_hash: str, expires_at: datetime, **extra) -> None:
+        self.id = id
+        self.user_id = user_id
+        self.token_hash = token_hash
+        self.expires_at = expires_at
+        for key, value in extra.items():
+            setattr(self, key, value)
+
+
+class FakeRefreshSessionRepository:
+    """In-memory stand-in for RefreshSessionRepository."""
+
+    def __init__(self) -> None:
+        self._rows: dict[int, _FakeHashedTokenRow] = {}
+        self._next_id = 1
+
+    async def create(self, user_id: int, token_hash: str, expires_at: datetime):
+        row = _FakeHashedTokenRow(
+            id=self._next_id, user_id=user_id, token_hash=token_hash, expires_at=expires_at,
+            revoked_at=None, replaced_by_id=None,
+        )
+        self._rows[row.id] = row
+        self._next_id += 1
+        return row
+
+    async def get_by_token_hash(self, token_hash: str):
+        for row in self._rows.values():
+            if row.token_hash == token_hash:
+                return row
+        return None
+
+    async def revoke(self, refresh_session, revoked_at: datetime, replaced_by_id: int | None = None) -> None:
+        refresh_session.revoked_at = revoked_at
+        if replaced_by_id is not None:
+            refresh_session.replaced_by_id = replaced_by_id
+
+    async def revoke_all_for_user(self, user_id: int, revoked_at: datetime) -> None:
+        for row in self._rows.values():
+            if row.user_id == user_id and row.revoked_at is None:
+                row.revoked_at = revoked_at
+
+    async def commit(self) -> None:
+        pass
+
+
+class FakePasswordResetTokenRepository:
+    """In-memory stand-in for PasswordResetTokenRepository."""
+
+    def __init__(self) -> None:
+        self._rows: dict[int, _FakeHashedTokenRow] = {}
+        self._next_id = 1
+
+    async def create(self, user_id: int, token_hash: str, expires_at: datetime):
+        row = _FakeHashedTokenRow(
+            id=self._next_id, user_id=user_id, token_hash=token_hash, expires_at=expires_at, used_at=None
+        )
+        self._rows[row.id] = row
+        self._next_id += 1
+        return row
+
+    async def get_by_token_hash(self, token_hash: str):
+        for row in self._rows.values():
+            if row.token_hash == token_hash:
+                return row
+        return None
+
+    async def mark_used(self, reset_token, used_at: datetime) -> None:
+        reset_token.used_at = used_at
+
+    async def commit(self) -> None:
+        pass

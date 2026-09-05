@@ -9,6 +9,7 @@ from app.api.dependencies import (
     get_auth_service,
     get_observability_event_repository,
     get_turnstile_service,
+    get_refresh_session_repository,
     get_user_repository,
 )
 from app.core.config import get_settings
@@ -18,6 +19,7 @@ from tests.fakes import (
     FakeAuthProtectionService,
     FakeObservabilityEventRepository,
     FakeTurnstileService,
+    FakeRefreshSessionRepository,
     FakeUserRepository,
 )
 
@@ -31,6 +33,7 @@ def client():
     app.dependency_overrides[get_auth_protection_service] = lambda: FakeAuthProtectionService()
     app.dependency_overrides[get_turnstile_service] = lambda: FakeTurnstileService()
     app.dependency_overrides[get_user_repository] = lambda: users
+    app.dependency_overrides[get_refresh_session_repository] = lambda: FakeRefreshSessionRepository()
     app.dependency_overrides[get_auth_service] = lambda: AuthService(users, settings)
     app.dependency_overrides[get_observability_event_repository] = lambda: observability_events
 

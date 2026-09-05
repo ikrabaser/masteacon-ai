@@ -92,7 +92,28 @@ class Settings(BaseSettings):
     # Authentication
     jwt_secret_key: str = "insecure-development-secret-change-me"
     jwt_algorithm: str = "HS256"
-    access_token_expire_minutes: int = 60
+    # Short-lived by design — long-lived sessions are handled by the
+    # server-side, rotating refresh session below, not by a long-lived
+    # access token itself.
+    access_token_expire_minutes: int = 15
+
+    # Server-side refresh sessions (see app/services/refresh_session_service.py).
+    # The raw refresh token is only ever handed to the browser as an HttpOnly
+    # cookie — never stored in the database (only its hash) or read by JS.
+    refresh_token_expire_days: int = 30
+    refresh_cookie_name: str = "masteacon_refresh_token"
+    # Must be True whenever served over HTTPS (i.e. always in production) so
+    # the cookie is never sent over plain HTTP. Set to False only for local
+    # HTTP development.
+    refresh_cookie_secure: bool = True
+    # "lax" blocks the cookie from being sent on cross-site POST/fetch
+    # requests (the actual CSRF-relevant case for /auth/refresh, /auth/logout,
+    # /auth/logout-all) while still working for normal top-level navigation -
+    # see the Security Notes in README.md for the full CSRF reasoning.
+    refresh_cookie_samesite: str = "lax"
+
+    # Password reset tokens (see app/services/password_reset_service.py).
+    password_reset_ttl_minutes: int = 30
 
     # Public authentication abuse protection
     auth_rate_limit_enabled: bool = True

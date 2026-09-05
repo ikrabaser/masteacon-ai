@@ -12,6 +12,8 @@ from app.api.dependencies import (
     get_auth_service,
     get_current_user,
     get_turnstile_service,
+    get_password_reset_token_repository,
+    get_refresh_session_repository,
     get_user_repository,
 )
 from app.core.config import get_settings
@@ -20,6 +22,8 @@ from app.services.auth_service import AuthService
 from tests.fakes import (
     FakeAuthProtectionService,
     FakeTurnstileService,
+    FakePasswordResetTokenRepository,
+    FakeRefreshSessionRepository,
     FakeUserRepository,
 )
 
@@ -35,9 +39,20 @@ def turnstile():
 
 
 @pytest.fixture
-def client(auth_protection, turnstile):
-    shared_repository = FakeUserRepository()
-    settings = get_settings()
+def user_repository():
+    return FakeUserRepository()
+
+
+@pytest.fixture
+def client(auth_protection, turnstile, user_repository):
+    shared_repository = user_repository
+    # TestClient talks plain HTTP (http://testserver) - a Secure cookie is
+    # never sent over HTTP by any client, so force it off here regardless of
+    # what real settings/.env happen to be, the same way production would
+    # force it on.
+    settings = get_settings().model_copy(update={"refresh_cookie_secure": False})
+    refresh_sessions = FakeRefreshSessionRepository()
+    reset_tokens = FakePasswordResetTokenRepository()
 
     def _get_user_repository_override():
         return shared_repository
@@ -59,6 +74,9 @@ def client(auth_protection, turnstile):
     app.dependency_overrides[get_turnstile_service] = (
         _get_turnstile_service_override
     )
+    app.dependency_overrides[get_refresh_session_repository] = lambda: refresh_sessions
+    app.dependency_overrides[get_password_reset_token_repository] = lambda: reset_tokens
+    app.dependency_overrides[get_settings] = lambda: settings
 
     with TestClient(app) as test_client:
         yield test_client
@@ -68,6 +86,9 @@ def client(auth_protection, turnstile):
     app.dependency_overrides.pop(get_auth_protection_service, None)
     app.dependency_overrides.pop(get_turnstile_service, None)
     app.dependency_overrides.pop(get_current_user, None)
+    app.dependency_overrides.pop(get_refresh_session_repository, None)
+    app.dependency_overrides.pop(get_password_reset_token_repository, None)
+    app.dependency_overrides.pop(get_settings, None)
 
 
 def test_register_returns_access_token(client: TestClient) -> None:
@@ -478,3 +499,133 @@ def test_login_rejects_unverified_account(
     assert response.json()["detail"] == (
         "Please verify your email address before signing in."
     )
+
+
+# --- Refresh session lifecycle -------------------------------------------
+
+REFRESH_COOKIE_NAME = get_settings().refresh_cookie_name
+
+
+async def _register_verified_and_login(client: TestClient, user_repository: FakeUserRepository, email: str) -> str:
+    """Registers, marks the account verified directly on the fake repository
+    (there's no real email verification service wired into this fixture),
+    then logs in for real through the route — so the client's cookie jar
+    ends up holding a genuine refresh session cookie.
+    """
+    client.post("/api/v1/auth/register", json={"email": email, "password": "password123"})
+    user = await user_repository.get_by_email(email)
+    user.is_email_verified = True
+
+    response = client.post("/api/v1/auth/login", json={"email": email, "password": "password123"})
+    assert response.status_code == 200
+    return response.json()["access_token"]
+
+
+async def test_login_sets_an_httponly_refresh_cookie(client: TestClient, user_repository: FakeUserRepository) -> None:
+    await _register_verified_and_login(client, user_repository, "session-a@example.com")
+
+    cookie = next(c for c in client.cookies.jar if c.name == REFRESH_COOKIE_NAME)
+    assert cookie.value
+    # httpx's cookiejar exposes HttpOnly/SameSite via the underlying stdlib
+    # cookie's rest-params; the important, directly-testable properties are
+    # that it's scoped to the auth path and isn't a session-only cookie.
+    assert cookie.path == "/api/v1/auth"
+    assert cookie.expires is not None
+
+
+async def test_refresh_issues_a_new_access_token(client: TestClient, user_repository: FakeUserRepository) -> None:
+    await _register_verified_and_login(client, user_repository, "session-b@example.com")
+
+    response = client.post("/api/v1/auth/refresh")
+
+    assert response.status_code == 200
+    assert response.json()["access_token"]
+
+
+async def test_refresh_without_a_cookie_is_rejected(client: TestClient) -> None:
+    response = client.post("/api/v1/auth/refresh")
+
+    assert response.status_code == 401
+
+
+async def test_the_old_refresh_cookie_is_rejected_after_a_refresh(
+    client: TestClient, user_repository: FakeUserRepository
+) -> None:
+    await _register_verified_and_login(client, user_repository, "session-c@example.com")
+    old_cookie_value = next(c for c in client.cookies.jar if c.name == REFRESH_COOKIE_NAME).value
+
+    first_refresh = client.post("/api/v1/auth/refresh")
+    assert first_refresh.status_code == 200
+
+    # Force the (now-rotated-away) old cookie back in, simulating a client
+    # that still has the stale value (e.g. a second tab, or a thief with a
+    # copy of it).
+    client.cookies.set(REFRESH_COOKIE_NAME, old_cookie_value, path="/api/v1/auth")
+    replay_attempt = client.post("/api/v1/auth/refresh")
+
+    assert replay_attempt.status_code == 401
+
+
+async def test_logout_revokes_the_session_and_clears_the_cookie(
+    client: TestClient, user_repository: FakeUserRepository
+) -> None:
+    await _register_verified_and_login(client, user_repository, "session-d@example.com")
+
+    logout_response = client.post("/api/v1/auth/logout")
+    assert logout_response.status_code == 204
+
+    refresh_after_logout = client.post("/api/v1/auth/refresh")
+    assert refresh_after_logout.status_code == 401
+
+
+def test_logout_succeeds_even_with_no_session_cookie_at_all(client: TestClient) -> None:
+    response = client.post("/api/v1/auth/logout")
+
+    assert response.status_code == 204
+
+
+async def test_logout_all_revokes_every_session_for_the_user(
+    client: TestClient, user_repository: FakeUserRepository
+) -> None:
+    access_token = await _register_verified_and_login(client, user_repository, "session-e@example.com")
+    # A second "device" logging in as the same user gets its own session.
+    second_login = client.post(
+        "/api/v1/auth/login", json={"email": "session-e@example.com", "password": "password123"}
+    )
+    assert second_login.status_code == 200
+
+    response = client.post(
+        "/api/v1/auth/logout-all", headers={"Authorization": f"Bearer {access_token}"}
+    )
+    assert response.status_code == 204
+
+    # The cookie jar currently holds the *second* login's cookie (the most
+    # recent one set) - logout-all must have revoked it too, not just the
+    # first session's.
+    refresh_after_logout_all = client.post("/api/v1/auth/refresh")
+    assert refresh_after_logout_all.status_code == 401
+
+
+def test_logout_all_requires_authentication(client: TestClient) -> None:
+    response = client.post("/api/v1/auth/logout-all")
+
+    assert response.status_code == 401
+
+
+# --- Password reset --------------------------------------------------------
+
+
+async def test_forgot_password_is_enumeration_safe_for_an_unknown_email(client: TestClient) -> None:
+    response = client.post("/api/v1/auth/forgot-password", json={"email": "nobody@example.com"})
+
+    assert response.status_code == 200
+    assert "message" in response.json()
+
+
+async def test_reset_password_rejects_an_unknown_token(client: TestClient) -> None:
+    response = client.post(
+        "/api/v1/auth/reset-password",
+        json={"token": "a-token-that-was-never-issued-xx", "new_password": "a-new-password"},
+    )
+
+    assert response.status_code == 400

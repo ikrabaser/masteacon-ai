@@ -67,3 +67,28 @@ class ResendVerificationResponse(BaseModel):
         "If an eligible account exists for this email, "
         "a verification message has been sent."
     )
+
+
+class ForgotPasswordRequest(BaseModel):
+    """Request body for POST /api/v1/auth/forgot-password."""
+
+    email: EmailStr
+
+
+class ForgotPasswordResponse(BaseModel):
+    """Enumeration-safe response for password reset requests."""
+
+    message: str = "If an account exists for this email, a password reset link has been sent."
+
+
+class ResetPasswordRequest(BaseModel):
+    """Request body for POST /api/v1/auth/reset-password."""
+
+    token: str = Field(min_length=20, max_length=512)
+    new_password: str = Field(min_length=8, max_length=128)
+
+
+class ResetPasswordResponse(BaseModel):
+    """Response returned after a successful password reset."""
+
+    message: str = "Your password has been reset. Please sign in again."

@@ -41,6 +41,29 @@ export function getCurrentUser(): Promise<UserResponse> {
   return apiRequest("/api/v1/auth/me");
 }
 
+export function refreshSession(): Promise<TokenResponse> {
+  return apiRequest("/api/v1/auth/refresh", { method: "POST" });
+}
+
+export function logout(): Promise<void> {
+  return apiRequest("/api/v1/auth/logout", { method: "POST" });
+}
+
+export function logoutAll(): Promise<void> {
+  return apiRequest("/api/v1/auth/logout-all", { method: "POST" });
+}
+
+export function forgotPassword(email: string): Promise<ForgotPasswordResponse> {
+  return apiRequest("/api/v1/auth/forgot-password", { method: "POST", json: { email } });
+}
+
+export function resetPassword(token: string, newPassword: string): Promise<ResetPasswordResponse> {
+  return apiRequest("/api/v1/auth/reset-password", {
+    method: "POST",
+    json: { token, new_password: newPassword },
+  });
+}
+
 // --- Workspaces ---
 
 export function listWorkspaces(): Promise<WorkspaceResponse[]> {
@@ -121,6 +144,14 @@ export interface EmailVerificationResponse {
 }
 
 export interface ResendVerificationResponse {
+  message: string;
+}
+
+export interface ForgotPasswordResponse {
+  message: string;
+}
+
+export interface ResetPasswordResponse {
   message: string;
 }
 

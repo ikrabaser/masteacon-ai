@@ -93,3 +93,21 @@ class EmailNotVerifiedError(AppError):
     """Raised when login is attempted before email verification."""
 
     status_code = 403
+
+
+class InvalidRefreshTokenError(AppError):
+    """Raised when a refresh token is missing, unknown, expired, or revoked.
+
+    Deliberately uses the same generic message/status for every one of those
+    cases (missing cookie, unknown hash, expired, already-rotated/replayed)
+    so a client can never distinguish "no session" from "a stolen, replayed
+    token" from the response alone.
+    """
+
+    status_code = 401
+
+
+class PasswordResetError(AppError):
+    """Raised when a password-reset token is invalid, expired, or already used."""
+
+    status_code = 400

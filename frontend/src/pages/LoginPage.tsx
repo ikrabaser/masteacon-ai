@@ -256,6 +256,10 @@ export function LoginPage() {
                     onChange={(e) => setPassword(e.target.value)}
                   />
                 </div>
+
+                <Link to="/forgot-password" className="masteacon-auth-forgot-link">
+                  Forgot password?
+                </Link>
               </div>
 
               <button
