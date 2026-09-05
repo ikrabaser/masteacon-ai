@@ -79,6 +79,31 @@ class Settings(BaseSettings):
     # keeps asking for.
     agent_max_iterations: int = 5
 
+    # LLM usage guardrails — per-user (and, for /ask, per-workspace) rate
+    # limits plus a per-user concurrency cap on the expensive, LLM-backed
+    # endpoints (ask, agent, conversation messages, document upload). Kept
+    # entirely separate from AUTH_RATE_LIMIT_* above — this guards cost for
+    # an already-authenticated user, not authentication itself. See
+    # app/services/usage_guard_service.py for the fail-open/fail-closed
+    # reasoning per mechanism.
+    llm_usage_limit_enabled: bool = True
+    llm_ask_rate_limit: int = 30
+    llm_ask_rate_window_seconds: int = 3600
+    llm_agent_rate_limit: int = 20
+    llm_agent_rate_window_seconds: int = 3600
+    llm_conversation_rate_limit: int = 60
+    llm_conversation_rate_window_seconds: int = 3600
+    llm_upload_rate_limit: int = 20
+    llm_upload_rate_window_seconds: int = 3600
+    # A shared cap across every user in one workspace, on top of (never
+    # instead of) each user's own per-user limit above.
+    llm_workspace_ask_rate_limit: int = 100
+    llm_workspace_ask_rate_window_seconds: int = 3600
+    # How many of a user's own ask/agent/conversation requests may be in
+    # flight at the same moment — deliberately shared across all three
+    # (they all ultimately call an LLM provider), not tracked separately.
+    llm_max_concurrent_per_user: int = 3
+
     # Hybrid search — fuses vector similarity with PostgreSQL full-text (keyword)
     # search via Reciprocal Rank Fusion, so an exact technical term a pure
     # embedding match might miss (e.g. an error code) still surfaces. Disabled

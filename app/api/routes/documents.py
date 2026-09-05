@@ -1,7 +1,12 @@
 """Document upload and retrieval endpoints — scoped to a workspace owned by the caller."""
 from fastapi import APIRouter, Depends, Form, UploadFile
 
-from app.api.dependencies import get_current_user, get_document_service, get_workspace_service
+from app.api.dependencies import (
+    enforce_upload_usage_limit,
+    get_current_user,
+    get_document_service,
+    get_workspace_service,
+)
 from app.models.user import User
 from app.schemas.document import DocumentResponse, DocumentStatusResponse, DocumentUploadResponse
 from app.services.document_service import DocumentService
@@ -17,6 +22,7 @@ async def upload_document(
     current_user: User = Depends(get_current_user),
     document_service: DocumentService = Depends(get_document_service),
     workspace_service: WorkspaceService = Depends(get_workspace_service),
+    _usage_limit: None = Depends(enforce_upload_usage_limit),
 ) -> DocumentUploadResponse:
     """Upload a PDF, DOCX or TXT file into a workspace and run it through the ingestion pipeline."""
     await workspace_service.get_owned_workspace(workspace_id, current_user.id)

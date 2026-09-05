@@ -38,6 +38,7 @@ from app.services.agent_service import AgentService
 from app.services.cross_encoder_reranking_service import CrossEncoderRerankingService
 from app.services.indexing_dispatcher import IndexingDispatcher
 from app.services.observability_service import ObservabilityService
+from app.services.usage_guard_service import ConcurrencyLimitExceeded, UsageGuardService
 from app.evaluation.generation_evaluator import GenerationEvaluator
 from app.services.query_rewriting_service import QueryRewritingService
 from app.services.rag_service import GroundednessChecker, RagService
@@ -299,6 +300,122 @@ def get_observability_service(
     repository: ObservabilityEventRepository = Depends(get_observability_event_repository),
 ) -> ObservabilityService:
     return ObservabilityService(repository)
+
+
+def get_usage_guard_service(
+    settings: Settings = Depends(get_settings),
+    redis_client: Redis = Depends(get_redis_client),
+) -> UsageGuardService:
+    return UsageGuardService(redis_client=redis_client, enabled=settings.llm_usage_limit_enabled)
+
+
+def _make_usage_guard_dependency(scope: str, rate_limit_attr: str, rate_window_attr: str, *, with_concurrency: bool):
+    """Builds a FastAPI yield-dependency enforcing a per-user rate limit and
+    (optionally) a per-user concurrency slot for one action. A "yield"
+    dependency: the code before `yield` runs before the route handler; the
+    `finally` after it always runs once the handler finishes (success or
+    error), which is exactly the acquire/release shape a concurrency slot
+    needs.
+    """
+
+    async def _dependency(
+        current_user: User = Depends(get_current_user),
+        settings: Settings = Depends(get_settings),
+        usage_guard: UsageGuardService = Depends(get_usage_guard_service),
+        observability_service: ObservabilityService = Depends(get_observability_service),
+    ):
+        identifier = str(current_user.id)
+        limit = getattr(settings, rate_limit_attr)
+        window_seconds = getattr(settings, rate_window_attr)
+
+        result = await usage_guard.check_rate_limit(
+            scope=scope, identifier=identifier, limit=limit, window_seconds=window_seconds
+        )
+        if not result.allowed:
+            await observability_service.record_event(
+                event_type="usage_throttled",
+                user_id=current_user.id,
+                success=False,
+                duration_ms=0.0,
+                extra={"scope": scope, "reason": "rate_limit"},
+            )
+            raise HTTPException(
+                status_code=429,
+                detail=f"Too many '{scope}' requests. Please slow down.",
+                headers={"Retry-After": str(result.retry_after)},
+            )
+
+        if not with_concurrency:
+            yield
+            return
+
+        try:
+            await usage_guard.acquire_concurrency_slot(
+                scope="llm_concurrent", identifier=identifier, max_concurrent=settings.llm_max_concurrent_per_user
+            )
+        except ConcurrencyLimitExceeded:
+            await observability_service.record_event(
+                event_type="usage_throttled",
+                user_id=current_user.id,
+                success=False,
+                duration_ms=0.0,
+                extra={"scope": scope, "reason": "concurrency_limit"},
+            )
+            raise HTTPException(
+                status_code=429,
+                detail="Too many requests in progress. Please wait for one to finish.",
+                headers={"Retry-After": "5"},
+            )
+
+        try:
+            yield
+        finally:
+            await usage_guard.release_concurrency_slot(scope="llm_concurrent", identifier=identifier)
+
+    return _dependency
+
+
+enforce_ask_usage_limit = _make_usage_guard_dependency(
+    "ask", "llm_ask_rate_limit", "llm_ask_rate_window_seconds", with_concurrency=True
+)
+enforce_agent_usage_limit = _make_usage_guard_dependency(
+    "agent", "llm_agent_rate_limit", "llm_agent_rate_window_seconds", with_concurrency=True
+)
+enforce_conversation_usage_limit = _make_usage_guard_dependency(
+    "conversation_message",
+    "llm_conversation_rate_limit",
+    "llm_conversation_rate_window_seconds",
+    with_concurrency=True,
+)
+enforce_upload_usage_limit = _make_usage_guard_dependency(
+    "upload", "llm_upload_rate_limit", "llm_upload_rate_window_seconds", with_concurrency=False
+)
+
+
+async def enforce_workspace_ask_usage_limit(
+    usage_guard: UsageGuardService, settings: Settings, workspace_id: int
+) -> None:
+    """A shared cap across every user asking questions in one workspace, on
+    top of (never instead of) each user's own per-user limit above.
+
+    Not itself a FastAPI dependency (unlike the ones above) — `workspace_id`
+    here comes from the request body (AskRequest.workspace_id), which a
+    dependency can't cleanly pull out on its own without redeclaring the
+    whole body model; the /ask route just calls this directly once it has
+    already parsed and validated the request.
+    """
+    result = await usage_guard.check_rate_limit(
+        scope="workspace_ask",
+        identifier=str(workspace_id),
+        limit=settings.llm_workspace_ask_rate_limit,
+        window_seconds=settings.llm_workspace_ask_rate_window_seconds,
+    )
+    if not result.allowed:
+        raise HTTPException(
+            status_code=429,
+            detail="This workspace has hit its shared question rate limit. Please slow down.",
+            headers={"Retry-After": str(result.retry_after)},
+        )
 
 
 def get_rag_service(
