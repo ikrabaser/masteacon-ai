@@ -6,8 +6,11 @@ from app.api.dependencies import (
     get_auth_protection_service,
     get_auth_service,
     get_current_user,
+    get_settings,
     get_turnstile_service,
 )
+from app.core.client_ip import get_client_ip
+from app.core.config import Settings
 from app.models.user import User
 from app.schemas.auth import (
     EmailVerificationResponse,
@@ -27,11 +30,8 @@ from app.services.turnstile_service import TurnstileService
 router = APIRouter(prefix="/api/v1/auth", tags=["auth"])
 
 
-def _client_identifier(request: Request) -> str:
-    if request.client is None:
-        return "unknown"
-
-    return request.client.host
+def _client_identifier(request: Request, settings: Settings) -> str:
+    return get_client_ip(request, settings.trusted_proxy_count)
 
 
 async def _enforce_rate_limit(
@@ -62,10 +62,11 @@ async def register(
     auth_service: AuthService = Depends(get_auth_service),
     protection: AuthProtectionService = Depends(get_auth_protection_service),
     turnstile: TurnstileService = Depends(get_turnstile_service),
+    settings: Settings = Depends(get_settings),
 ) -> TokenResponse:
     """Create a new user account and return an access token."""
 
-    identifier = _client_identifier(http_request)
+    identifier = _client_identifier(http_request, settings)
 
     await _enforce_rate_limit(
         protection=protection,
@@ -107,10 +108,11 @@ async def resend_verification(
     http_request: Request,
     auth_service: AuthService = Depends(get_auth_service),
     protection: AuthProtectionService = Depends(get_auth_protection_service),
+    settings: Settings = Depends(get_settings),
 ) -> ResendVerificationResponse:
     """Request a fresh verification email without exposing account existence."""
 
-    identifier = _client_identifier(http_request)
+    identifier = _client_identifier(http_request, settings)
 
     await _enforce_rate_limit(
         protection=protection,
@@ -144,10 +146,11 @@ async def login(
     http_request: Request,
     auth_service: AuthService = Depends(get_auth_service),
     protection: AuthProtectionService = Depends(get_auth_protection_service),
+    settings: Settings = Depends(get_settings),
 ) -> TokenResponse:
     """Authenticate with email/password and return an access token."""
 
-    identifier = _client_identifier(http_request)
+    identifier = _client_identifier(http_request, settings)
 
     await _enforce_rate_limit(
         protection=protection,

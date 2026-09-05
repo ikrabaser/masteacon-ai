@@ -38,4 +38,11 @@ langchain-text-splitters==0.3.11
 # only actually loaded into memory if cross-encoder reranking is used
 # (RERANK_ENABLED=true + RERANKER_PROVIDER=cross_encoder); the default
 # RERANKER_PROVIDER=lexical never imports it.
+#
+# torch is pinned explicitly (matching what's actually installed) so the
+# Dockerfile can install the CPU-only build from PyTorch's own index first -
+# nothing in this project uses a GPU, and the default PyPI wheel bundles the
+# full CUDA runtime, which is both unnecessary and, on a slow connection, one
+# of the largest and most failure-prone downloads in the whole build.
+torch==2.13.0
 sentence-transformers==6.0.0

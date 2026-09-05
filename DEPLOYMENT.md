@@ -43,10 +43,13 @@ nano .env   # fill in every line marked "MUST CHANGE"
 ```
 
 At minimum you need: a real `OPENAI_API_KEY`, a generated `JWT_SECRET_KEY`
-(`python3 -c "import secrets; print(secrets.token_urlsafe(48))"`), `DOMAIN`
-set to your real domain, and `CORS_ORIGINS`/`FRONTEND_BASE_URL` set to
-`https://<DOMAIN>`. If you want email verification working, also fill in
-`RESEND_API_KEY` (see [resend.com](https://resend.com)).
+(`python3 -c "import secrets; print(secrets.token_urlsafe(48))"`), a real
+`POSTGRES_PASSWORD`, `DOMAIN` set to your real domain, and
+`CORS_ORIGINS`/`FRONTEND_BASE_URL` set to `https://<DOMAIN>`. Also set
+`TRUSTED_PROXY_COUNT=1` — this stack's chain is Client -> Caddy -> nginx ->
+API, and without this, auth rate limiting would key every request off
+nginx's own IP instead of the real client's. If you want email verification
+working, also fill in `RESEND_API_KEY` (see [resend.com](https://resend.com)).
 
 ## 5. Build and start everything
 
@@ -106,5 +109,12 @@ object storage) on the same schedule.
   which in turn proxies `/api/*` to `api` internally (`frontend/nginx.conf`)
   — the whole app is one HTTPS origin, so there's no CORS involved for
   normal browser traffic at all.
-- `DEBUG=false` and a real `JWT_SECRET_KEY` are required — `app/main.py`
-  refuses to boot with the default dev secret when `APP_ENV=production`.
+- `DEBUG=false` and a real `JWT_SECRET_KEY`/`POSTGRES_PASSWORD`/CORS-and-frontend
+  origin are required — `app/core/production_config.py` runs a full
+  fail-fast check at startup when `APP_ENV=production` and refuses to boot
+  (with a specific message per problem) rather than serve traffic
+  insecurely or broken.
+- `GET /health` (alias for `/health/live`) only checks that the process is
+  up; `GET /health/ready` also checks Postgres and Redis and returns 503 if
+  either is down — point any real uptime monitor or load balancer at
+  whichever matches what you actually want to alert on.

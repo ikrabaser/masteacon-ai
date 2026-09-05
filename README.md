@@ -40,19 +40,23 @@ account that owns it.
   are actually supported by the retrieved context before it reaches the user; below the
   configured threshold, the answer is replaced with an explicit "not enough evidence" message
   instead of risking an unsupported claim (disabled by default — adds latency and cost)
-- **Agent / tool use** — ask a question and let the model decide whether it needs to call a
-  read-only tool (list workspaces, list documents, fetch a document, summarize a document); every
-  tool call is authorization-checked server-side before it runs, regardless of what the model asks
-  for
+- **Agent / tool use** — ask a question and let the model call read-only tools as needed (list
+  workspaces, list/fetch/summarize documents, semantic search within a workspace, workspace
+  stats), chaining more than one call across a bounded number of rounds when the task genuinely
+  requires it (e.g. look something up, then use the result to decide on a second lookup — never
+  an unbounded loop). Every tool call is authorization-checked server-side before it runs,
+  regardless of what the model — or a prompt injected into a document it read — asks for; see
+  [Security Notes](#security-notes)
 - **Pluggable chat providers** — OpenAI or Anthropic, selected via configuration; embeddings
   always use OpenAI (no public Anthropic embeddings API)
 - **Reranking** — an optional second-stage pass over retrieved candidates before they're used to
   answer (disabled by default; off means byte-for-byte the same retrieval behavior as without
   it). Two selectable implementations: a dependency-free heuristic blending vector similarity
   with lexical overlap, or a local cross-encoder model for more accurate relevance judgments
-- **Structured observability** — every request is tagged with a correlation id and logged as a
-  single structured JSON event (counts, durations, ids — never prompts, answers or document
-  content)
+- **Observability dashboard** — every rag_request/agent_request/tool_call is tagged with a
+  correlation id, logged as a structured JSON event, and persisted so each user can see their own
+  request volume, success rate, latency and tool usage over time on a dedicated dashboard page —
+  never prompts, answers or document content, only counts/durations/ids
 - **File upload security** — extension/MIME validation, size limits, safe generated filenames
 - **Clean layered architecture** (routes → services → repositories → database), fully async
   FastAPI + SQLAlchemy stack, Dockerized for one-command local startup
@@ -123,7 +127,7 @@ app/
 │   ├── reranking_service.py      # Vector + lexical blended reranker
 │   ├── rag_service.py            # Retrieval + prompt construction + generation
 │   ├── conversation_service.py   # Bounded conversation history
-│   ├── agent_service.py          # One bounded round of LLM tool-calling
+│   ├── agent_service.py          # Bounded multi-round LLM tool-calling loop
 │   └── tool_execution_service.py # Validates/authorizes/executes a single tool call
 │
 ├── providers/                   # External API abstractions, backed by LangChain
@@ -174,9 +178,12 @@ frontend/    # React + Vite + TypeScript web app
 6. **Respond:** the answer is returned together with the list of source chunks that were used.
 
 The **agent** endpoint follows a parallel, bounded path: the model is offered a small set of
-read-only tools, decides whether it needs one, and — if so — the tool call is validated and
-authorization-checked (workspace/document ownership) before it ever runs, then the tool's result
-is fed back to the model for a final answer. No loop: at most one round of tool calls per request.
+read-only tools and decides whether it needs one — and, if the task genuinely requires it, it can
+chain more than one tool call across further rounds (e.g. look something up, then use what it
+found to decide on a second lookup), up to `AGENT_MAX_ITERATIONS` rounds. Every tool call is
+validated and authorization-checked (workspace/document ownership) before it ever runs, and once
+the model has what it needs (or the round limit is hit) its final answer is generated from every
+tool result gathered so far — it can never loop unboundedly.
 
 ## Installation
 
@@ -208,8 +215,10 @@ locally you also need a Celery worker running: `celery -A app.tasks.celery_app w
 | `APP_NAME` | Application name | `AI Knowledge Assistant` |
 | `APP_ENV` | Environment name | `development` |
 | `DEBUG` | Enable debug logging / SQL echo | `true` |
-| `DATABASE_URL` | Async PostgreSQL connection string | — |
+| `POSTGRES_USER` / `POSTGRES_PASSWORD` / `POSTGRES_DB` | Postgres credentials — Docker Compose builds `DATABASE_URL` from these | `postgres` / `postgres` / `ai_knowledge_assistant` |
+| `DATABASE_URL` | Async PostgreSQL connection string (only used outside Docker Compose) | — |
 | `REDIS_URL` | Celery broker/result backend | `redis://localhost:6379/0` |
+| `TRUSTED_PROXY_COUNT` | Trusted reverse-proxy hops before `X-Forwarded-For` reaches the app (see [Security Notes](#security-notes)) | `0` |
 | `LLM_PROVIDER` | Chat provider: `openai` or `anthropic` | `openai` |
 | `OPENAI_API_KEY` | OpenAI API key | — |
 | `OPENAI_CHAT_MODEL` | Chat completion model | `gpt-4o-mini` |
@@ -236,6 +245,7 @@ locally you also need a Celery worker running: `celery -A app.tasks.celery_app w
 | `RETRIEVAL_CANDIDATE_COUNT` | Candidates fetched before reranking (also used by hybrid search) | `20` |
 | `RERANK_TOP_K` | Chunks kept after reranking | `5` |
 | `HYBRID_SEARCH_ENABLED` | Fuse vector + keyword (full-text) search via RRF | `false` |
+| `AGENT_MAX_ITERATIONS` | Max sequential tool-calling rounds before a final answer is forced | `5` |
 | `CONVERSATION_HISTORY_MAX_MESSAGES` | Prior turns kept per conversation | `10` |
 | `CONVERSATION_HISTORY_MAX_TOKENS` | Token budget for prior turns | `2000` |
 | `MAX_UPLOAD_SIZE_MB` | Max upload size | `20` |
@@ -418,6 +428,15 @@ either — that's why `--with-generation` is opt-in and never runs as part of th
 - Passwords are hashed with bcrypt and never stored or logged in plain text.
 - JWTs are signed with a fixed, explicit algorithm (no algorithm-confusion surface); the API
   refuses to start in production with the default signing secret.
+- **Auth rate limiting identifies the real client IP, not a proxy's.** `X-Forwarded-For` is never
+  trusted by default (`TRUSTED_PROXY_COUNT=0` — the raw socket peer is used); set it to the exact
+  number of trusted proxy hops in front of the app (1 for this project's own Caddy+nginx
+  production chain — see `app/core/client_ip.py`) so the rate limiter can't be trivially bypassed
+  by an attacker spoofing the header, nor accidentally key every request off the same proxy IP.
+- **Production configuration fails fast, not silently.** Starting with `APP_ENV=production` runs
+  every check in `app/core/production_config.py` (JWT secret, database credentials, required
+  provider/email/Turnstile keys, CORS/frontend origin) and refuses to boot — with a specific,
+  readable error per problem — rather than serving traffic in an insecure or broken state.
 - Every workspace-scoped repository query is filtered by `workspace_id` at the SQL level —
   ownership isn't just checked at the route, it's structurally impossible to bypass in retrieval.
 - Agent tool calls are authorization-checked server-side before execution, independent of what

@@ -12,19 +12,21 @@ from app.api.routes import agent, auth, conversations, documents, health, observ
 from app.core.config import get_settings
 from app.core.exceptions import AppError
 from app.core.logging import configure_logging, get_logger
+from app.core.production_config import validate_production_config
 from app.core.request_context import set_request_id
 
 settings = get_settings()
 configure_logging(debug=settings.debug)
 logger = get_logger(__name__)
 
-_INSECURE_DEFAULT_JWT_SECRET = "insecure-development-secret-change-me"
-if settings.app_env == "production" and settings.jwt_secret_key == _INSECURE_DEFAULT_JWT_SECRET:
-    # Refuse to boot with the default signing key in production — every token issued
-    # with it would be forgeable by anyone who has read this open-source repository.
+_production_config_errors = validate_production_config(settings)
+if _production_config_errors:
+    # Refuse to boot with an insecure or incomplete production configuration —
+    # serving traffic in that state is worse than not starting at all. See
+    # app/core/production_config.py for the full list of checks.
     raise RuntimeError(
-        "JWT_SECRET_KEY is still set to the insecure default while APP_ENV=production. "
-        "Set a unique, secret JWT_SECRET_KEY before starting the application."
+        "Refusing to start with APP_ENV=production due to configuration problems:\n- "
+        + "\n- ".join(_production_config_errors)
     )
 
 app = FastAPI(

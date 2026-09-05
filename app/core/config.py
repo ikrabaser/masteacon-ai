@@ -101,6 +101,13 @@ class Settings(BaseSettings):
     auth_login_rate_limit: int = 10
     auth_login_rate_window_seconds: int = 300
 
+    # Number of trusted reverse-proxy hops that append to X-Forwarded-For
+    # before a request reaches this app — see app/core/client_ip.py. 0 (the
+    # safe default) means X-Forwarded-For is ignored entirely and the direct
+    # socket peer is used; this deployment's production chain
+    # (Client -> Caddy -> nginx -> Uvicorn) is exactly 1.
+    trusted_proxy_count: int = 0
+
     # Cloudflare Turnstile
     turnstile_enabled: bool = False
     turnstile_secret_key: str = ""
