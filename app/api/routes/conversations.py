@@ -1,7 +1,7 @@
 """Conversation and message endpoints — persistent RAG chat history."""
 from fastapi import APIRouter, Depends
 
-from app.api.dependencies import get_conversation_service, get_current_user
+from app.api.dependencies import enforce_conversation_usage_limit, get_conversation_service, get_current_user
 from app.models.user import User
 from app.schemas.conversation import (
     ConversationCreateRequest,
@@ -65,6 +65,7 @@ async def post_message(
     request: MessageCreateRequest,
     current_user: User = Depends(get_current_user),
     conversation_service: ConversationService = Depends(get_conversation_service),
+    _usage_limit: None = Depends(enforce_conversation_usage_limit),
 ) -> MessageCreateResponse:
     """Ask a question in an existing conversation; runs the RAG pipeline with bounded history."""
     user_message, assistant_message, sources = await conversation_service.add_message(

@@ -251,6 +251,13 @@ locally you also need a Celery worker running: `celery -A app.tasks.celery_app w
 | `RERANK_TOP_K` | Chunks kept after reranking | `5` |
 | `HYBRID_SEARCH_ENABLED` | Fuse vector + keyword (full-text) search via RRF | `false` |
 | `AGENT_MAX_ITERATIONS` | Max sequential tool-calling rounds before a final answer is forced | `5` |
+| `LLM_USAGE_LIMIT_ENABLED` | Per-user/workspace rate + concurrency limits on ask/agent/conversation/upload | `true` |
+| `LLM_ASK_RATE_LIMIT` / `LLM_ASK_RATE_WINDOW_SECONDS` | Per-user `/ask` quota | `30` / `3600` |
+| `LLM_AGENT_RATE_LIMIT` / `LLM_AGENT_RATE_WINDOW_SECONDS` | Per-user agent quota | `20` / `3600` |
+| `LLM_CONVERSATION_RATE_LIMIT` / `..._WINDOW_SECONDS` | Per-user conversation-message quota | `60` / `3600` |
+| `LLM_UPLOAD_RATE_LIMIT` / `..._WINDOW_SECONDS` | Per-user document-upload quota | `20` / `3600` |
+| `LLM_WORKSPACE_ASK_RATE_LIMIT` / `..._WINDOW_SECONDS` | Shared quota across every user in one workspace, on top of the per-user one | `100` / `3600` |
+| `LLM_MAX_CONCURRENT_PER_USER` | Max in-flight ask/agent/conversation requests per user at once | `3` |
 | `CONVERSATION_HISTORY_MAX_MESSAGES` | Prior turns kept per conversation | `10` |
 | `CONVERSATION_HISTORY_MAX_TOKENS` | Token budget for prior turns | `2000` |
 | `MAX_UPLOAD_SIZE_MB` | Max upload size | `20` |
@@ -469,6 +476,14 @@ either — that's why `--with-generation` is opt-in and never runs as part of th
 
 ## Security Notes
 
+- **LLM cost/abuse guardrails are separate from auth abuse protection.** `/ask`, `/agent/ask`,
+  conversation messages and document uploads each carry their own per-user (and, for `/ask`, a
+  shared per-workspace) Redis-backed rate limit, plus a per-user concurrency cap so one account
+  can't run unlimited parallel LLM calls. Rate limits fail open if Redis is unreachable (an infra
+  blip shouldn't take down all LLM usage); the concurrency limiter fails closed (unable to count
+  in-flight requests means refusing new ones, since a blind concurrency check could let one user
+  exhaust shared capacity for everyone). Throttled requests are recorded as `usage_throttled`
+  observability events. See `app/services/usage_guard_service.py`.
 - Passwords are hashed with bcrypt and never stored or logged in plain text.
 - **Refresh tokens, like passwords, are never stored raw.** Only their SHA-256 hash is persisted
   (`refresh_sessions.token_hash` / `password_reset_tokens.token_hash`); the raw value exists only

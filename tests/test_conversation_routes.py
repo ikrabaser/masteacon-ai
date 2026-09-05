@@ -12,6 +12,7 @@ from app.api.dependencies import (
     get_message_repository,
     get_turnstile_service,
     get_refresh_session_repository,
+    get_usage_guard_service,
     get_user_repository,
     get_workspace_repository,
 )
@@ -29,6 +30,7 @@ from tests.fakes import (
     FakeMessageRepository,
     FakeTurnstileService,
     FakeRefreshSessionRepository,
+    FakeUsageGuardService,
     FakeUserRepository,
     FakeWorkspaceRepository,
 )
@@ -51,6 +53,7 @@ def client():
     app.dependency_overrides[get_turnstile_service] = lambda: turnstile
     app.dependency_overrides[get_user_repository] = lambda: users
     app.dependency_overrides[get_refresh_session_repository] = lambda: FakeRefreshSessionRepository()
+    app.dependency_overrides[get_usage_guard_service] = lambda: FakeUsageGuardService()
     app.dependency_overrides[get_auth_service] = lambda: AuthService(users, settings)
     app.dependency_overrides[get_workspace_repository] = lambda: workspaces
     app.dependency_overrides[get_conversation_repository] = lambda: conversations
@@ -178,3 +181,35 @@ def test_list_conversations_only_returns_the_current_users_conversations(client:
 
     assert response.status_code == 200
     assert len(response.json()) == 1
+
+
+# --- /api/v1/ask usage guardrails -------------------------------------------
+
+
+def test_ask_is_throttled_when_the_per_user_usage_guard_denies_it(client: TestClient) -> None:
+    token = _register(client, "throttled-ask@example.com")
+    workspace = _create_workspace(client, token)
+    app.dependency_overrides[get_usage_guard_service] = lambda: FakeUsageGuardService(allow=False)
+
+    response = client.post(
+        "/api/v1/ask",
+        json={"question": "How many days of annual leave do I get?", "workspace_id": workspace["id"]},
+        headers=_auth_headers(token),
+    )
+
+    assert response.status_code == 429
+    assert "Retry-After" in response.headers
+
+
+def test_ask_still_enforces_workspace_ownership_before_any_llm_call(client: TestClient) -> None:
+    token_a = _register(client, "owner@example.com")
+    token_b = _register(client, "intruder@example.com")
+    workspace = _create_workspace(client, token_a)
+
+    response = client.post(
+        "/api/v1/ask",
+        json={"question": "Anything in here?", "workspace_id": workspace["id"]},
+        headers=_auth_headers(token_b),
+    )
+
+    assert response.status_code == 404

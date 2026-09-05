@@ -593,3 +593,32 @@ class FakePasswordResetTokenRepository:
 
     async def commit(self) -> None:
         pass
+
+
+class FakeUsageGuardService:
+    """In-memory stand-in for UsageGuardService — always allows by default,
+    used by route tests that don't care about rate/concurrency limiting.
+    """
+
+    def __init__(self, allow: bool = True, allow_concurrency: bool | None = None) -> None:
+        self.allow = allow
+        # Defaults to `allow` (deny-everything or allow-everything), but can
+        # be set independently to exercise the concurrency path specifically
+        # while the rate-limit check itself still passes.
+        self.allow_concurrency = allow if allow_concurrency is None else allow_concurrency
+        self.checked_scopes: list[str] = []
+
+    async def check_rate_limit(self, *, scope: str, identifier: str, limit: int, window_seconds: int):
+        from app.services.usage_guard_service import RateLimitResult
+
+        self.checked_scopes.append(scope)
+        return RateLimitResult(allowed=self.allow, retry_after=0 if self.allow else 30)
+
+    async def acquire_concurrency_slot(self, *, scope: str, identifier: str, max_concurrent: int, ttl_seconds: int = 120) -> None:
+        from app.services.usage_guard_service import ConcurrencyLimitExceeded
+
+        if not self.allow_concurrency:
+            raise ConcurrencyLimitExceeded()
+
+    async def release_concurrency_slot(self, *, scope: str, identifier: str) -> None:
+        pass
