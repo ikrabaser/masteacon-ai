@@ -20,6 +20,8 @@ from app.repositories.conversation_repository import ConversationRepository
 from app.repositories.document_repository import DocumentRepository
 from app.repositories.message_repository import MessageRepository
 from app.repositories.observability_event_repository import ObservabilityEventRepository
+from app.repositories.password_reset_token_repository import PasswordResetTokenRepository
+from app.repositories.refresh_session_repository import RefreshSessionRepository
 from app.repositories.user_repository import UserRepository
 from app.repositories.workspace_repository import WorkspaceRepository
 from app.services.auth_service import AuthService
@@ -30,6 +32,8 @@ from app.services.document_service import DocumentService
 from app.services.embedding_service import EmbeddingService
 from app.services.email_verification_service import EmailVerificationService
 from app.services.email_service import EmailService
+from app.services.password_reset_service import PasswordResetService
+from app.services.refresh_session_service import RefreshSessionService
 from app.services.agent_service import AgentService
 from app.services.cross_encoder_reranking_service import CrossEncoderRerankingService
 from app.services.indexing_dispatcher import IndexingDispatcher
@@ -94,6 +98,39 @@ def get_auth_service(
         settings=settings,
         email_verification_service=email_verification_service,
         email_service=email_service,
+    )
+
+
+def get_refresh_session_repository(session: AsyncSession = Depends(get_db)) -> RefreshSessionRepository:
+    return RefreshSessionRepository(session)
+
+
+def get_refresh_session_service(
+    settings: Settings = Depends(get_settings),
+    repository: RefreshSessionRepository = Depends(get_refresh_session_repository),
+) -> RefreshSessionService:
+    return RefreshSessionService(repository, ttl_days=settings.refresh_token_expire_days)
+
+
+def get_password_reset_token_repository(
+    session: AsyncSession = Depends(get_db),
+) -> PasswordResetTokenRepository:
+    return PasswordResetTokenRepository(session)
+
+
+def get_password_reset_service(
+    settings: Settings = Depends(get_settings),
+    user_repository: UserRepository = Depends(get_user_repository),
+    reset_token_repository: PasswordResetTokenRepository = Depends(get_password_reset_token_repository),
+    refresh_session_service: RefreshSessionService = Depends(get_refresh_session_service),
+    email_service: EmailService = Depends(get_email_service),
+) -> PasswordResetService:
+    return PasswordResetService(
+        user_repository=user_repository,
+        reset_token_repository=reset_token_repository,
+        refresh_session_service=refresh_session_service,
+        email_service=email_service,
+        ttl_minutes=settings.password_reset_ttl_minutes,
     )
 
 

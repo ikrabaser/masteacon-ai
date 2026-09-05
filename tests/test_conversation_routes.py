@@ -11,6 +11,7 @@ from app.api.dependencies import (
     get_embedding_service,
     get_message_repository,
     get_turnstile_service,
+    get_refresh_session_repository,
     get_user_repository,
     get_workspace_repository,
 )
@@ -27,6 +28,7 @@ from tests.fakes import (
     FakeEmbeddingProvider,
     FakeMessageRepository,
     FakeTurnstileService,
+    FakeRefreshSessionRepository,
     FakeUserRepository,
     FakeWorkspaceRepository,
 )
@@ -48,6 +50,7 @@ def client():
     app.dependency_overrides[get_auth_protection_service] = lambda: auth_protection
     app.dependency_overrides[get_turnstile_service] = lambda: turnstile
     app.dependency_overrides[get_user_repository] = lambda: users
+    app.dependency_overrides[get_refresh_session_repository] = lambda: FakeRefreshSessionRepository()
     app.dependency_overrides[get_auth_service] = lambda: AuthService(users, settings)
     app.dependency_overrides[get_workspace_repository] = lambda: workspaces
     app.dependency_overrides[get_conversation_repository] = lambda: conversations

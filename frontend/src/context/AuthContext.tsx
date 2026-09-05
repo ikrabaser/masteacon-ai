@@ -1,8 +1,14 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
 import * as api from "../api/endpoints";
-import { setAuthToken } from "../api/client";
+import { setAuthToken, setOnTokenRefreshed } from "../api/client";
 import type { UserResponse } from "../api/types";
 
+// Only the short-lived access token ever lives here — the long-lived refresh
+// session is an HttpOnly cookie the browser manages entirely on its own;
+// this app's JS never reads or stores it. Access tokens expire in minutes
+// (ACCESS_TOKEN_EXPIRE_MINUTES), so keeping this one in localStorage (to
+// survive a page reload without an extra round-trip) is the trade-off the
+// backend's session design explicitly allows for.
 const TOKEN_STORAGE_KEY = "masteacon_access_token";
 const LEGACY_TOKEN_STORAGE_KEY = "aika_access_token";
 
@@ -31,7 +37,8 @@ interface AuthContextValue {
     website?: string,
     turnstileToken?: string,
   ) => Promise<void>;
-  logout: () => void;
+  logout: () => Promise<void>;
+  logoutAllSessions: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -39,6 +46,16 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<UserResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+
+  // Any access token this app ever holds - whether from login/register, or
+  // one silently rotated in mid-request by the api client on a 401 - flows
+  // back through here so localStorage and React state both stay correct.
+  useEffect(() => {
+    setOnTokenRefreshed((token) => {
+      localStorage.setItem(TOKEN_STORAGE_KEY, token);
+    });
+    return () => setOnTokenRefreshed(null);
+  }, []);
 
   useEffect(() => {
     const storedToken = readStoredToken();
@@ -51,6 +68,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .getCurrentUser()
       .then(setUser)
       .catch(() => {
+        // getCurrentUser already tried a silent refresh internally (see
+        // api/client.ts) - a 401 that survives that means there's truly no
+        // valid session left.
         localStorage.removeItem(TOKEN_STORAGE_KEY);
         setAuthToken(null);
       })
@@ -92,15 +112,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [],
   );
 
-  const logout = useCallback(() => {
+  const clearLocalSession = useCallback(() => {
     localStorage.removeItem(TOKEN_STORAGE_KEY);
     localStorage.removeItem(LEGACY_TOKEN_STORAGE_KEY);
     setAuthToken(null);
     setUser(null);
   }, []);
 
+  const logout = useCallback(async () => {
+    try {
+      await api.logout();
+    } finally {
+      // Always clear local state, even if the network call itself failed
+      // (offline, server error) - the user's intent to log out of *this*
+      // browser must never be blocked by that.
+      clearLocalSession();
+    }
+  }, [clearLocalSession]);
+
+  const logoutAllSessions = useCallback(async () => {
+    try {
+      await api.logoutAll();
+    } finally {
+      clearLocalSession();
+    }
+  }, [clearLocalSession]);
+
   return (
-    <AuthContext.Provider value={{ user, isLoading, login, register, logout }}>{children}</AuthContext.Provider>
+    <AuthContext.Provider value={{ user, isLoading, login, register, logout, logoutAllSessions }}>
+      {children}
+    </AuthContext.Provider>
   );
 }
 

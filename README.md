@@ -13,8 +13,10 @@ account that owns it.
 
 ## Features
 
-- **Accounts & workspaces** — JWT-based auth; every user gets isolated workspaces, and no
-  endpoint can read, search or act on a workspace it doesn't own
+- **Accounts & workspaces** — short-lived JWT access tokens backed by a server-side, rotating
+  refresh session (HttpOnly cookie, hashed in the database, single-use — see
+  [Authentication & Sessions](#authentication--sessions)); every user gets isolated workspaces,
+  and no endpoint can read, search or act on a workspace it doesn't own
 - **Document ingestion** — upload PDF, DOCX or TXT; text extraction, chunking and embedding run
   asynchronously (Celery + Redis) so an upload returns immediately and indexing continues in the
   background, with bounded automatic retries on transient failures
@@ -227,7 +229,10 @@ locally you also need a Celery worker running: `celery -A app.tasks.celery_app w
 | `ANTHROPIC_CHAT_MODEL` | Anthropic chat model | `claude-3-5-sonnet-20241022` |
 | `JWT_SECRET_KEY` | JWT signing secret — **must** be overridden in production | dev-only default |
 | `JWT_ALGORITHM` | JWT signing algorithm | `HS256` |
-| `ACCESS_TOKEN_EXPIRE_MINUTES` | Access token lifetime | `60` |
+| `ACCESS_TOKEN_EXPIRE_MINUTES` | Access token lifetime | `15` |
+| `REFRESH_TOKEN_EXPIRE_DAYS` | Refresh session lifetime | `30` |
+| `REFRESH_COOKIE_SECURE` | Send the refresh cookie only over HTTPS — `false` only for local HTTP dev | `true` |
+| `PASSWORD_RESET_TTL_MINUTES` | How long a password reset link stays valid | `30` |
 | `CORS_ORIGINS` | Comma-separated allowed frontend origins | `http://localhost:5173,http://localhost:3000` |
 | `EMAIL_DELIVERY_ENABLED` | Send verification emails via Resend | `false` |
 | `RESEND_API_KEY` | [Resend](https://resend.com) API key (only needed when the above is `true`) | — |
@@ -301,6 +306,38 @@ npm install
 npm run dev             # http://localhost:5173
 ```
 
+## Authentication & Sessions
+
+Access tokens are short-lived (`ACCESS_TOKEN_EXPIRE_MINUTES`, 15 by default) — long-lived sessions
+are handled separately by a server-side, rotating **refresh session**, not by a long-lived JWT:
+
+1. **Login/register** issue an access token (in the JSON body) and a refresh token, set as an
+   `HttpOnly`, `Secure`, `SameSite=Lax` cookie scoped to `/api/v1/auth` — the frontend's JS never
+   reads or stores the refresh token itself.
+2. **`POST /api/v1/auth/refresh`** reads that cookie, and — if it's a valid, unexpired, not-yet-used
+   session — **rotates** it: the old session is revoked, a brand-new one is issued, and a new
+   access token comes back. Only the SHA-256 hash of a refresh token is ever stored
+   (`refresh_sessions.token_hash`); a database leak alone can never be turned into a working
+   session.
+3. **Replay detection:** presenting a refresh token that was already rotated away means someone
+   else has a copy of it — every session for that account is revoked immediately, forcing a fresh
+   login everywhere. A token revoked by logout instead is just rejected on its own (a stale client,
+   not evidence of compromise) — see `app/services/refresh_session_service.py` for the exact
+   reasoning.
+4. **`POST /api/v1/auth/logout`** revokes the one session in the cookie; **`POST
+   /api/v1/auth/logout-all`** (requires a valid access token) revokes every session for the
+   account. Both always succeed, even with no session at all.
+5. **Password reset** (`/api/v1/auth/forgot-password` → emailed single-use token →
+   `/api/v1/auth/reset-password`) revokes every refresh session for the account on success, so a
+   password compromised via a stolen device can't be used to keep an old session alive after the
+   real owner resets it. The forgot-password endpoint is enumeration-safe: the response never
+   reveals whether the email belongs to an account.
+
+The frontend (`frontend/src/api/client.ts`) handles all of this transparently: a `401` from any
+API call triggers exactly one silent `/auth/refresh` attempt (coalesced if several requests hit it
+at once) before retrying the original request; only if that also fails does the app treat the user
+as logged out.
+
 ## API Endpoints
 
 The authoritative, up-to-date list is always at `/docs` (Swagger UI). As of this writing:
@@ -308,9 +345,16 @@ The authoritative, up-to-date list is always at `/docs` (Swagger UI). As of this
 | Method | Path | Description |
 |---|---|---|
 | `GET` | `/` | Basic application info |
-| `GET` | `/health` | Health check |
-| `POST` | `/api/v1/auth/register` | Create an account, returns an access token |
-| `POST` | `/api/v1/auth/login` | Log in, returns an access token |
+| `GET` | `/health` / `/health/live` | Liveness — process is up, no dependency checks |
+| `GET` | `/health/ready` | Readiness — checks Postgres + Redis, 503 if either is down |
+| `GET` | `/api/v1/observability/summary` | Your own request/agent/tool reliability metrics |
+| `POST` | `/api/v1/auth/register` | Create an account; returns an access token, sets a refresh cookie |
+| `POST` | `/api/v1/auth/login` | Log in; returns an access token, sets a refresh cookie |
+| `POST` | `/api/v1/auth/refresh` | Rotate the refresh session, return a new access token |
+| `POST` | `/api/v1/auth/logout` | Revoke the current session |
+| `POST` | `/api/v1/auth/logout-all` | Revoke every session for the account |
+| `POST` | `/api/v1/auth/forgot-password` | Request a password reset email (enumeration-safe) |
+| `POST` | `/api/v1/auth/reset-password` | Consume a reset token, set a new password |
 | `GET` | `/api/v1/auth/me` | Current authenticated user |
 | `POST` | `/api/v1/workspaces` | Create a workspace |
 | `GET` | `/api/v1/workspaces` | List your workspaces |
@@ -426,6 +470,19 @@ either — that's why `--with-generation` is opt-in and never runs as part of th
 ## Security Notes
 
 - Passwords are hashed with bcrypt and never stored or logged in plain text.
+- **Refresh tokens, like passwords, are never stored raw.** Only their SHA-256 hash is persisted
+  (`refresh_sessions.token_hash` / `password_reset_tokens.token_hash`); the raw value exists only
+  in the HttpOnly cookie / the emailed link, once.
+- **CSRF on the cookie-based endpoints is handled in layers, since HttpOnly alone does nothing for
+  CSRF** (it only stops JS from reading the cookie — the browser still attaches it automatically).
+  `/api/v1/auth/refresh`, `/logout` and `/logout-all` are protected by: `SameSite=Lax` (blocks the
+  cookie from being sent on a cross-site POST/fetch at all, which is exactly the CSRF-relevant
+  case here); the cookie's `Path=/api/v1/auth` scoping (never attached to any other endpoint);
+  strict, explicit-origin CORS (`allow_credentials=True` is never combined with a wildcard
+  origin); and the fact that even a successful forged request's JSON response (a new access
+  token) is opaque to a cross-origin caller — it can't read what it triggered. `/logout-all`
+  additionally requires a valid `Authorization: Bearer` header, which a cross-site page can never
+  attach on the victim's behalf at all.
 - JWTs are signed with a fixed, explicit algorithm (no algorithm-confusion surface); the API
   refuses to start in production with the default signing secret.
 - **Auth rate limiting identifies the real client IP, not a proxy's.** `X-Forwarded-For` is never
