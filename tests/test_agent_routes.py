@@ -118,6 +118,11 @@ def test_agent_ask_uses_a_tool_and_only_sees_the_callers_own_workspaces(client: 
 
 def test_agent_ask_is_throttled_when_the_usage_guard_denies_it(client: TestClient) -> None:
     token = _register(client, "throttled@example.com")
+    # get_agent_service's dependency chain still resolves get_chat_provider
+    # even though the usage-limit dependency will reject the request first -
+    # FastAPI resolves an endpoint's sibling dependencies regardless of which
+    # one ends up raising, so this must be faked the same as everywhere else.
+    app.dependency_overrides[get_chat_provider] = lambda: FakeChatProvider()
     app.dependency_overrides[get_usage_guard_service] = lambda: FakeUsageGuardService(allow=False)
 
     response = client.post(
@@ -130,6 +135,7 @@ def test_agent_ask_is_throttled_when_the_usage_guard_denies_it(client: TestClien
 
 def test_agent_ask_is_throttled_when_the_concurrency_guard_denies_it(client: TestClient) -> None:
     token = _register(client, "concurrent@example.com")
+    app.dependency_overrides[get_chat_provider] = lambda: FakeChatProvider()
     app.dependency_overrides[get_usage_guard_service] = lambda: FakeUsageGuardService(
         allow=True, allow_concurrency=False
     )
