@@ -46,6 +46,9 @@
 
   --shadow-glow:
     0 0 54px rgba(220, 162, 54, 0.08);
+
+  --focus-ring:
+    0 0 0 3px rgba(234, 177, 69, 0.07);
 }
 
 :root[data-theme="dark"] {
@@ -254,7 +257,7 @@ body {
 
   border: 1px solid var(--border);
 
-  border-radius: 12px;
+  border-radius: var(--radius);
 }
 
 .workspace-switcher-label,
@@ -277,7 +280,7 @@ body {
 
   border: 1px solid var(--border);
 
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
 
   color: var(--text);
 
@@ -288,8 +291,7 @@ body {
 .workspace-switcher input:focus {
   border-color: rgba(231, 172, 63, 0.65);
 
-  box-shadow:
-    0 0 0 3px rgba(231, 172, 63, 0.07);
+  box-shadow: var(--focus-ring);
 }
 
 /* ---------- Sidebar sections ---------- */
@@ -326,7 +328,7 @@ body {
 
   border: 1px solid transparent;
 
-  border-radius: 10px;
+  border-radius: var(--radius-sm);
 
   font-size: 13px;
   font-weight: 500;
@@ -406,7 +408,7 @@ body {
 
   border: 1px solid var(--border);
 
-  border-radius: 10px;
+  border-radius: var(--radius-sm);
 }
 
 .sidebar-account-avatar {
@@ -593,8 +595,7 @@ body {
 
   border-color: rgba(234, 177, 69, 0.58);
 
-  box-shadow:
-    0 0 0 3px rgba(234, 177, 69, 0.065);
+  box-shadow: var(--focus-ring);
 }
 
 /* ---------- Accent migration ---------- */

@@ -1,11 +1,11 @@
-/* ---------- Design tokens ---------- */
+/* ---------- Design tokens ----------
+   Brand, surface, text and shadow tokens (--brand-*, --gradient-brand*,
+   --bg*, --surface*, --border*, --text*, --shadow-*) are owned by
+   masteacon-shell.css, loaded right after this file - it defines the
+   real (amber) values for both themes. Only layout-level tokens that
+   shell.css doesn't touch live here.
+   ---------------------------------- */
 :root {
-  --brand-1: #6366f1;
-  --brand-2: #a855f7;
-  --brand-3: #ec4899;
-  --gradient-brand: linear-gradient(135deg, var(--brand-1) 0%, var(--brand-2) 50%, var(--brand-3) 100%);
-  --gradient-brand-soft: linear-gradient(135deg, rgba(99, 102, 241, 0.15), rgba(236, 72, 153, 0.15));
-
   --radius-sm: 8px;
   --radius: 12px;
   --radius-lg: 18px;
@@ -13,21 +13,6 @@
     "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   --font-display:
     "Plus Jakarta Sans", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-
-  /* Light theme (default) */
-  --bg: #f7f6fc;
-  --bg-elevated: #ffffff;
-  --surface: #ffffff;
-  --surface-hover: #f3f1fb;
-  --surface-sunken: #f1effa;
-  --border: #e6e1f4;
-  --border-strong: #d5cdec;
-  --text: #1a1730;
-  --text-muted: #64607d;
-  --text-faint: #948dad;
-  --shadow-sm: 0 1px 2px rgba(76, 29, 149, 0.06);
-  --shadow-md: 0 8px 24px rgba(76, 29, 149, 0.1);
-  --shadow-glow: 0 0 0 rgba(0, 0, 0, 0);
 
   --success: #059669;
   --success-bg: #ecfdf5;
@@ -38,20 +23,6 @@
 }
 
 :root[data-theme="dark"] {
-  --bg: #0a0918;
-  --bg-elevated: #131124;
-  --surface: #15132a;
-  --surface-hover: #1d1a38;
-  --surface-sunken: #100e20;
-  --border: #292545;
-  --border-strong: #3a3560;
-  --text: #f1eefb;
-  --text-muted: #a79ecb;
-  --text-faint: #726a96;
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
-  --shadow-md: 0 12px 32px rgba(0, 0, 0, 0.45);
-  --shadow-glow: 0 0 40px rgba(139, 92, 246, 0.15);
-
   --success: #34d399;
   --success-bg: rgba(52, 211, 153, 0.12);
   --danger: #f87171;
