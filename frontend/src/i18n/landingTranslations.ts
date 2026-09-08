@@ -4,745 +4,303 @@ const en = {
   seo: {
     title: "Masteacon — Trusted answers from your knowledge",
     description:
-      "Masteacon brings your knowledge together so teams can find relevant information, ask naturally, and get clear answers with visible supporting sources.",
+      "Masteacon brings your documents together so your team can ask questions in plain language and get answers backed by visible sources.",
   },
 
   nav: {
-    product: "Product",
-    solutions: "Solutions",
+    features: "Features",
     howItWorks: "How it works",
-    architecture: "How Masteacon works",
-    security: "Trust & control",
+    security: "Security",
     signIn: "Sign in",
     getStarted: "Get started",
-    explore: "EXPLORE MASTEACON",
+    explore: "MENU",
     openMenu: "Open navigation",
     closeMenu: "Close navigation",
   },
 
   hero: {
-    eyebrow: "KNOWLEDGE INTELLIGENCE · TRUSTED ANSWERS",
+    eyebrow: "KNOWLEDGE INTELLIGENCE",
     titleStart: "Turn scattered knowledge into",
     titleAccent: " trusted answers.",
     description:
-      "Bring your knowledge together. Ask naturally. Get clear answers with visible sources and context you can verify.",
-    primary: "Start building",
-    secondary: "Explore the platform",
-    signals: [
-      "Evidence connected",
-      "Search by meaning",
-      "Focused workspaces",
-      "Intelligent workflows",
+      "Upload your documents, ask questions in plain language, and get concise answers with the exact passages they came from — so you can verify every claim in seconds.",
+    primary: "Get started free",
+    secondary: "See how it works",
+    signals: ["No credit card required", "Free to try"],
+  },
+
+  mockup: {
+    workspaceLabel: "Employee Handbook",
+    question: "How many days of annual leave do I get?",
+    answerLabel: "Answer",
+    answerTitle: "14 days per year, prorated in your first year.",
+    sourceLabel: "Sources",
+    sources: ["employee-handbook.pdf, p. 12", "hr-policy.docx, p. 3"],
+  },
+
+  features: {
+    eyebrow: "WHAT IT DOES",
+    title: "Everything a knowledge assistant should be — and nothing it shouldn't.",
+    items: [
+      {
+        icon: "search",
+        title: "Search by meaning",
+        description:
+          "Find the right passage even when your question uses different words than the document does.",
+      },
+      {
+        icon: "chat",
+        title: "Answers with sources",
+        description:
+          "Every answer links back to the exact document and passage it's based on, so you can check it yourself.",
+      },
+      {
+        icon: "folder",
+        title: "Isolated workspaces",
+        description:
+          "Keep client work, teams, or projects in separate workspaces — nothing crosses over by accident.",
+      },
+      {
+        icon: "sparkle",
+        title: "An agent that can act",
+        description:
+          "Ask it to look something up, then use what it found to answer a follow-up — all within a bounded, auditable loop.",
+      },
     ],
   },
 
-  preview: {
-    sectionEyebrow: "THE PLATFORM",
-    sectionTitle: "One intelligence layer.",
-    sectionTitleSecond: "Four ways to work.",
-    sectionDescription:
-      "From knowledge organization to reliable answers and intelligent workflows, Masteacon keeps everything connected to the information behind it.",
-
-    tabs: {
-      command: {
-        label: "Command Center",
-        eyebrow: "KNOWLEDGE COMMAND CENTER",
-        title: "See what your knowledge can do.",
-        description:
-          "Track knowledge coverage, answer activity and workspace intelligence from one calm operating surface.",
-        metricLabel: "Knowledge coverage",
-        metricValue: "100%",
-      },
-      library: {
-        label: "Knowledge Library",
-        eyebrow: "KNOWLEDGE LIBRARY",
-        title: "Bring scattered knowledge into one place.",
-        description:
-          "Upload and organize your documents while Masteacon prepares them for fast, relevant answers.",
-        metricLabel: "Ready documents",
-        metricValue: "24",
-      },
-      chat: {
-        label: "Ask Masteacon",
-        eyebrow: "ANSWERS WITH EVIDENCE",
-        title: "Ask naturally. Verify every answer.",
-        description:
-          "Move beyond exact keyword matching and get answers connected to the knowledge you control.",
-        metricLabel: "Answer evidence",
-        metricValue: "Active",
-      },
-      agent: {
-        label: "Intelligent Workflows",
-        eyebrow: "WORKFLOW ACTIVITY",
-        title: "Turn knowledge into action.",
-        description:
-          "Run intelligent workflows across documents and workspaces with clear steps and results you can review.",
-        metricLabel: "Execution status",
-        metricValue: "Visible",
-      },
-    },
-
-    ask: "Ask Masteacon",
-    question: "What does our knowledge say?",
-    answerReady: "Trusted response ready",
-    answerDescription:
-      "Relevant knowledge was found and reviewed before the answer was prepared.",
-    relevantContext: "Relevant context first",
-    liveSignal: "Live workspace signal",
-    grounded: "Evidence connected",
-  },
-
-  problem: {
-    eyebrow: "WHY MASTEACON",
-    title: "Your knowledge is everywhere.",
-    accent: "Your answers shouldn't be.",
-    description:
-      "Masteacon turns fragmented organizational knowledge into a trusted, searchable layer your team can actually use.",
-    without: "Without Masteacon",
-    withoutTitle: "Fragmented knowledge",
-    with: "With Masteacon",
-    withTitle: "Trusted intelligence",
-    badge: "MASTEACON INTELLIGENCE",
-
-    withoutItems: [
-      "Knowledge scattered across documents and folders",
-      "Keyword search misses meaning and context",
-      "Teams repeat the same research",
-      "AI answers arrive without evidence",
-      "Important knowledge disappears inside silos",
-    ],
-
-    withItems: [
-      "One searchable knowledge layer",
-      "Find answers even without exact keyword matches",
-      "Answers with visible supporting evidence",
-      "Intelligent workflows across trusted knowledge",
-      "Organized workspaces with controlled context",
-    ],
-  },
-
-  steps: {
+  how: {
     eyebrow: "HOW IT WORKS",
-    title: "From documents to dependable intelligence.",
-    items: [
+    title: "From documents to trusted answers in three steps.",
+    steps: [
       {
         number: "01",
-        title: "Bring your knowledge",
-        description:
-          "Add the information your team relies on to a focused workspace.",
+        title: "Add your documents",
+        description: "Upload PDFs, Word docs, or plain text into a workspace. Indexing happens in the background.",
       },
       {
         number: "02",
-        title: "Build intelligence",
-        description:
-          "Masteacon organizes your content so the right information can be found when it matters.",
+        title: "Ask naturally",
+        description: "Type a question the way you'd ask a colleague — no keywords or special syntax required.",
       },
       {
         number: "03",
-        title: "Ask. Verify. Act.",
-        description:
-          "Get clear answers, review supporting sources and move forward with confidence.",
-      },
-    ],
-  },
-
-  architecture: {
-    eyebrow: "HOW MASTEACON WORKS",
-    title: "From scattered knowledge to",
-    titleSecond: "answers you can trust.",
-    description:
-      "Masteacon prepares your knowledge, finds what matters for each question and keeps every answer connected to the information behind it.",
-
-    stages: [
-      {
-        number: "01",
-        title: "Bring your knowledge",
-        description: "Add the information your team relies on.",
-      },
-      {
-        number: "02",
-        title: "Understand",
-        description: "Masteacon makes your content ready to work with.",
-      },
-      {
-        number: "03",
-        title: "Organize",
-        description: "Related knowledge is connected into useful context.",
-      },
-      {
-        number: "04",
-        title: "Find what matters",
-        description:
-          "The most relevant information is selected for each question.",
-      },
-      {
-        number: "05",
-        title: "Answer with evidence",
-        description:
-          "Answers stay connected to the knowledge behind them.",
-      },
-    ],
-
-    questionLabel: "YOUR QUESTION",
-    question: "Ask naturally.",
-    flow: [
-      "Find relevant knowledge",
-      "Connect the context",
-      "Prepare the answer",
-    ],
-    answerLabel: "TRUSTED ANSWER",
-    answerTitle: "Relevant context. Clear evidence.",
-    answerDescription: "The knowledge behind the answer stays visible.",
-    signals: [
-      "Relevant knowledge",
-      "Visible evidence",
-      "Trusted context",
-      "Clear answers",
-    ],
-  },
-
-  capabilities: {
-    eyebrow: "CORE CAPABILITIES",
-    title: "Built for knowledge that",
-    titleSecond: "needs to stay useful.",
-    description:
-      "Masteacon brings your knowledge, relevant context and trusted answers together in one focused intelligence platform.",
-
-    items: [
-      {
-        number: "01",
-        title: "Knowledge Library",
-        description:
-          "Organize trusted documents inside focused workspaces built around your team's knowledge.",
-        meta: "Documents in one place",
-      },
-      {
-        number: "02",
-        title: "Smart Search",
-        description:
-          "Find relevant information even when your question uses different wording.",
-        meta: "Meaning-aware discovery",
-      },
-      {
-        number: "03",
-        title: "Answers with Sources",
-        description:
-          "Get clear answers while keeping supporting information visible and easy to review.",
-        meta: "Visible answer evidence",
-      },
-      {
-        number: "04",
-        title: "Intelligent Workflows",
-        description:
-          "Run knowledge-aware workflows with clear steps and results you can review.",
-        meta: "Guided actions",
-      },
-      {
-        number: "05",
-        title: "Knowledge Workspaces",
-        description:
-          "Keep documents, context and intelligent workflows organized around a clear scope.",
-        meta: "Focused context",
-      },
-      {
-        number: "06",
-        title: "Activity Visibility",
-        description:
-          "See how answers and workflows progress instead of treating the system like a black box.",
-        meta: "Reviewable activity",
-      },
-    ],
-  },
-
-  audience: {
-    eyebrow: "BUILT FOR KNOWLEDGE-HEAVY WORK",
-    title: "One intelligence layer.",
-    titleSecond: "Different ways to use it.",
-    description:
-      "Wherever teams depend on documents, internal knowledge and repeated research, Masteacon helps turn that information into something searchable and actionable.",
-
-    items: [
-      {
-        label: "PRODUCT",
-        title: "Product teams",
-        description:
-          "Search requirements, product notes and internal decisions without losing the context behind them.",
-      },
-      {
-        label: "ENGINEERING",
-        title: "Engineering teams",
-        description:
-          "Find technical knowledge, architecture notes and operational context through natural language.",
-      },
-      {
-        label: "RESEARCH",
-        title: "Research teams",
-        description:
-          "Explore document collections intelligently and keep answers tied to supporting evidence.",
-      },
-      {
-        label: "OPERATIONS",
-        title: "Operations",
-        description:
-          "Turn policies, procedures and internal references into a searchable knowledge layer.",
+        title: "Verify and act",
+        description: "Read the answer, check the sources it's grounded in, and act on it with confidence.",
       },
     ],
   },
 
   trust: {
-    eyebrow: "TRUST & CONTROL",
-    title: "AI is more useful when",
-    accent: " you can see why.",
+    eyebrow: "SECURITY",
+    title: "Built so you can trust what it tells you",
+    titleAccent: " — and who can see it.",
     description:
-      "Masteacon keeps context, evidence and activity visible so teams can understand what supports an answer before relying on it.",
-    signals: [
-      "Source evidence",
-      "Workspace context",
-      "Relevant context",
-      "Workflow history",
+      "Every workspace is isolated at the database level, every answer is grounded in retrieved evidence, and every action an agent takes is checked against your own permissions before it runs.",
+    points: [
+      "Workspace data is never visible across accounts",
+      "Answers are generated only from retrieved context",
+      "Every source cited in an answer is independently checkable",
+      "Agent tool calls are authorization-checked on every request",
     ],
-    flowLabel: "MASTEACON / TRUSTED ANSWER FLOW",
-    flowTitle: "Context before every answer",
-
-    stages: [
-      {
-        number: "01",
-        title: "Knowledge",
-        description: "Trusted workspace information",
-      },
-      {
-        number: "02",
-        title: "Relevant context",
-        description: "Finds what matters for the question",
-      },
-      {
-        number: "03",
-        title: "Evidence",
-        description: "Keeps supporting knowledge connected",
-      },
-    ],
-
-    statusLabel: "Answer status",
-    statusTitle: "Sources connected",
-    ready: "READY",
   },
 
   faq: {
     eyebrow: "FAQ",
-    title: "A few things worth",
-    titleSecond: "knowing first.",
-
+    title: "Before you start",
     items: [
       {
         question: "What is Masteacon?",
         answer:
-          "Masteacon is a knowledge intelligence platform for organizing documents, finding relevant information and producing clear answers from trusted knowledge.",
+          "A knowledge assistant: upload your documents and ask questions about them in plain language. Answers are grounded in your own content, with sources you can check.",
       },
       {
-        question: "How does Masteacon find relevant information?",
+        question: "How does it find the right information?",
         answer:
-          "Masteacon looks at meaning and context, so it can find related information even when your question uses different wording.",
+          "It combines semantic (meaning-based) search with keyword matching, so it finds relevant passages even if your question doesn't use the document's exact wording.",
       },
       {
-        question: "How does Masteacon keep answers trustworthy?",
+        question: "Can I trust the answers?",
         answer:
-          "Masteacon uses relevant knowledge from your workspace and keeps supporting sources visible so you can review what an answer is based on.",
+          "Every answer cites the specific passages it's based on. If there isn't enough information in your documents to answer confidently, it says so instead of guessing.",
       },
       {
-        question: "Which document formats are supported?",
-        answer:
-          "The current knowledge library supports PDF, DOCX and TXT documents.",
+        question: "What file types are supported?",
+        answer: "PDF, Word (.docx), and plain text files today.",
       },
       {
-        question: "What can Masteacon workflows do?",
+        question: "Is my data isolated from other accounts?",
         answer:
-          "Masteacon can carry out supported knowledge and workspace actions, return clear results and show the steps taken along the way.",
+          "Yes. Every workspace is scoped at the database level — no query, search, or agent action can ever reach data outside the workspace it was made for.",
       },
     ],
   },
 
   finalCta: {
-    eyebrow: "TRUSTED KNOWLEDGE · CLEAR ANSWERS",
-    title: "Your knowledge already exists. Make it usable.",
-    button: "Build your workspace",
+    eyebrow: "GET STARTED",
+    title: "Your knowledge is already there. Make it usable.",
+    button: "Create your workspace",
   },
 
   footer: {
-    description:
-      "Knowledge intelligence for teams that need answers they can trust.",
+    description: "Knowledge intelligence for teams who need answers they can trust.",
+    product: "Product",
+    productLinks: ["Command Center", "Knowledge Library", "Ask Masteacon", "Agent"],
+    explore: "Explore",
+    exploreLinks: ["Features", "How it works", "Security"],
     signIn: "Sign in",
     create: "Create account",
   },
 };
 
-const tr: typeof en = {
+const tr = {
   seo: {
     title: "Masteacon — Bilginizden güvenilir yanıtlar",
     description:
-      "Masteacon bilginizi bir araya getirir; ekiplerin ilgili bilgiye ulaşmasını, doğal şekilde soru sormasını ve görünür kaynaklarla desteklenen net yanıtlar almasını sağlar.",
+      "Masteacon dokümanlarınızı bir araya getirir; ekibiniz doğal dille soru sorar ve görünür kaynaklara dayanan yanıtlar alır.",
   },
 
   nav: {
-    product: "Ürün",
-    solutions: "Çözümler",
+    features: "Özellikler",
     howItWorks: "Nasıl çalışır",
-    architecture: "Masteacon nasıl çalışır",
-    security: "Güven ve kontrol",
+    security: "Güvenlik",
     signIn: "Giriş yap",
     getStarted: "Başla",
-    explore: "MASTEACON'U KEŞFET",
+    explore: "MENÜ",
     openMenu: "Menüyü aç",
     closeMenu: "Menüyü kapat",
   },
 
   hero: {
-    eyebrow: "BİLGİ ZEKÂSI · GÜVENİLİR YANITLAR",
+    eyebrow: "BİLGİ ZEKÂSI",
     titleStart: "Dağınık bilgiyi",
     titleAccent: " güvenilir yanıtlara dönüştürün.",
     description:
-      "Bilginizi bir araya getirin. Doğal şekilde sorun. Görünür kaynaklara ve doğrulayabileceğiniz bağlama dayanan net yanıtlar alın.",
-    primary: "Başlamaya hazır",
-    secondary: "Platformu keşfet",
-    signals: [
-      "Kanıtla destekli",
-      "Anlama göre arama",
-      "Odaklı çalışma alanları",
-      "Akıllı iş akışları",
+      "Dokümanlarınızı yükleyin, doğal dille soru sorun ve geldiği pasajlarla birlikte net yanıtlar alın — her iddiayı saniyeler içinde doğrulayın.",
+    primary: "Ücretsiz başla",
+    secondary: "Nasıl çalıştığını gör",
+    signals: ["Kredi kartı gerekmez", "Ücretsiz deneyin"],
+  },
+
+  mockup: {
+    workspaceLabel: "Çalışan El Kitabı",
+    question: "Yıllık izin hakkım kaç gün?",
+    answerLabel: "Yanıt",
+    answerTitle: "İlk yıl kıst hesaplanmak üzere, yılda 14 gün.",
+    sourceLabel: "Kaynaklar",
+    sources: ["calisan-el-kitabi.pdf, s. 12", "ik-politikasi.docx, s. 3"],
+  },
+
+  features: {
+    eyebrow: "NE YAPAR",
+    title: "Bir bilgi asistanının olması gereken her şey — olmaması gereken hiçbir şey.",
+    items: [
+      {
+        icon: "search",
+        title: "Anlama göre arama",
+        description:
+          "Sorunuz dokümandakinden farklı kelimeler kullansa bile doğru pasajı bulur.",
+      },
+      {
+        icon: "chat",
+        title: "Kaynaklı yanıtlar",
+        description:
+          "Her yanıt, dayandığı doküman ve pasaja bağlıdır — isterseniz kendiniz kontrol edin.",
+      },
+      {
+        icon: "folder",
+        title: "İzole çalışma alanları",
+        description:
+          "Müşteri işlerini, ekipleri veya projeleri ayrı çalışma alanlarında tutun — hiçbir şey yanlışlıkla karışmaz.",
+      },
+      {
+        icon: "sparkle",
+        title: "Harekete geçebilen ajan",
+        description:
+          "Bir şeyi araştırmasını isteyin, bulduğuyla takip sorusunu yanıtlasın — hepsi sınırlı ve denetlenebilir bir döngüde.",
+      },
     ],
   },
 
-  preview: {
-    sectionEyebrow: "PLATFORM",
-    sectionTitle: "Tek bir bilgi katmanı.",
-    sectionTitleSecond: "Dört farklı çalışma biçimi.",
-    sectionDescription:
-      "Bilgiyi düzenlemekten güvenilir yanıtlar ve akıllı iş akışları oluşturmaya kadar Masteacon her şeyi temelindeki bilgiyle bağlantılı tutar.",
-
-    tabs: {
-      command: {
-        label: "Komuta Merkezi",
-        eyebrow: "BİLGİ KOMUTA MERKEZİ",
-        title: "Bilginizin neler yapabildiğini görün.",
-        description:
-          "Bilgi kapsamını, yanıt etkinliğini ve çalışma alanı içgörülerini tek bir sade merkezden takip edin.",
-        metricLabel: "Bilgi kapsamı",
-        metricValue: "%100",
-      },
-      library: {
-        label: "Bilgi Kütüphanesi",
-        eyebrow: "BİLGİ KÜTÜPHANESİ",
-        title: "Dağınık bilgiyi tek yerde toplayın.",
-        description:
-          "Dokümanlarınızı yükleyip düzenleyin; Masteacon onları hızlı ve ilgili yanıtlar için hazırlar.",
-        metricLabel: "Hazır doküman",
-        metricValue: "24",
-      },
-      chat: {
-        label: "Masteacon'a Sor",
-        eyebrow: "KANITLI YANITLAR",
-        title: "Doğal şekilde sorun. Her yanıtı doğrulayın.",
-        description:
-          "Tam kelime eşleşmesinin ötesine geçin ve kontrol ettiğiniz bilgiyle bağlantılı yanıtlar alın.",
-        metricLabel: "Yanıt kanıtı",
-        metricValue: "Aktif",
-      },
-      agent: {
-        label: "Akıllı İş Akışları",
-        eyebrow: "İŞ AKIŞI ETKİNLİĞİ",
-        title: "Bilgiyi eyleme dönüştürün.",
-        description:
-          "Dokümanlar ve çalışma alanları üzerinde adımları ve sonuçları inceleyebileceğiniz akıllı iş akışları yürütün.",
-        metricLabel: "İşlem durumu",
-        metricValue: "Görünür",
-      },
-    },
-
-    ask: "Masteacon'a Sor",
-    question: "Bilgimiz bize ne söylüyor?",
-    answerReady: "Güvenilir yanıt hazır",
-    answerDescription:
-      "Yanıt hazırlanmadan önce ilgili bilgi bulundu ve değerlendirildi.",
-    relevantContext: "Önce ilgili bağlam",
-    liveSignal: "Canlı çalışma alanı göstergesi",
-    grounded: "Kanıt bağlı",
-  },
-
-  problem: {
-    eyebrow: "NEDEN MASTEACON",
-    title: "Bilginiz her yerde olabilir.",
-    accent: "Yanıtlarınız olmamalı.",
-    description:
-      "Masteacon dağınık kurumsal bilgiyi ekibinizin gerçekten kullanabileceği güvenilir ve aranabilir bir katmana dönüştürür.",
-    without: "Masteacon olmadan",
-    withoutTitle: "Dağınık bilgi",
-    with: "Masteacon ile",
-    withTitle: "Güvenilir bilgi zekâsı",
-    badge: "MASTEACON BİLGİ ZEKÂSI",
-
-    withoutItems: [
-      "Bilginin dokümanlara ve klasörlere dağılması",
-      "Kelime aramalarının anlamı ve bağlamı kaçırması",
-      "Ekiplerin aynı araştırmayı tekrar tekrar yapması",
-      "Yapay zekâ yanıtlarının kanıtsız gelmesi",
-      "Önemli bilginin klasörler içinde kaybolması",
-    ],
-
-    withItems: [
-      "Tek ve aranabilir bir bilgi katmanı",
-      "Tam kelime eşleşmesi olmadan da ilgili bilgiye ulaşma",
-      "Görünür kaynaklarla desteklenen yanıtlar",
-      "Güvenilir bilgi üzerinde akıllı iş akışları",
-      "Kontrollü bağlama sahip düzenli çalışma alanları",
-    ],
-  },
-
-  steps: {
+  how: {
     eyebrow: "NASIL ÇALIŞIR",
-    title: "Dokümanlardan güvenilir bilgi zekâsına.",
-    items: [
+    title: "Dokümandan güvenilir yanıta üç adımda.",
+    steps: [
       {
         number: "01",
-        title: "Bilginizi getirin",
-        description:
-          "Ekibinizin güvendiği bilgileri odaklı bir çalışma alanına ekleyin.",
+        title: "Dokümanlarınızı ekleyin",
+        description: "PDF, Word veya düz metin yükleyin. İndeksleme arka planda gerçekleşir.",
       },
       {
         number: "02",
-        title: "Bilgiyi kullanılabilir hale getirin",
-        description:
-          "Masteacon içeriğinizi doğru bilginin gerektiği anda bulunabileceği şekilde düzenler.",
+        title: "Doğal şekilde sorun",
+        description: "Bir meslektaşınıza sorar gibi yazın — anahtar kelime ya da özel bir söz dizimi gerekmez.",
       },
       {
         number: "03",
-        title: "Sorun. Doğrulayın. Harekete geçin.",
-        description:
-          "Net yanıtlar alın, destekleyen kaynakları inceleyin ve güvenle ilerleyin.",
-      },
-    ],
-  },
-
-  architecture: {
-    eyebrow: "MASTEACON NASIL ÇALIŞIR",
-    title: "Dağınık bilgiden",
-    titleSecond: "güvenebileceğiniz yanıtlara.",
-    description:
-      "Masteacon bilginizi hazırlar, her soru için önemli olanı bulur ve her yanıtı arkasındaki bilgiyle bağlantılı tutar.",
-
-    stages: [
-      {
-        number: "01",
-        title: "Bilginizi getirin",
-        description: "Ekibinizin güvendiği bilgileri ekleyin.",
-      },
-      {
-        number: "02",
-        title: "Anlamlandırın",
-        description: "Masteacon içeriğinizi çalışmaya hazır hale getirir.",
-      },
-      {
-        number: "03",
-        title: "Düzenleyin",
-        description: "İlişkili bilgiler anlamlı bir bağlam içinde birleştirilir.",
-      },
-      {
-        number: "04",
-        title: "Önemli olanı bulun",
-        description: "Her soru için en ilgili bilgi seçilir.",
-      },
-      {
-        number: "05",
-        title: "Kanıtla yanıtlayın",
-        description: "Yanıtlar arkasındaki bilgiyle bağlantılı kalır.",
-      },
-    ],
-
-    questionLabel: "SORUNUZ",
-    question: "Doğal şekilde sorun.",
-    flow: [
-      "İlgili bilgiyi bul",
-      "Bağlamı birleştir",
-      "Yanıtı hazırla",
-    ],
-    answerLabel: "GÜVENİLİR YANIT",
-    answerTitle: "İlgili bağlam. Açık kanıt.",
-    answerDescription: "Yanıtın arkasındaki bilgi görünür kalır.",
-    signals: [
-      "İlgili bilgi",
-      "Görünür kanıt",
-      "Güvenilir bağlam",
-      "Net yanıtlar",
-    ],
-  },
-
-  capabilities: {
-    eyebrow: "TEMEL YETENEKLER",
-    title: "Değerini koruması gereken",
-    titleSecond: "bilgiler için tasarlandı.",
-    description:
-      "Masteacon bilginizi, ilgili bağlamı ve güvenilir yanıtları tek bir odaklı bilgi platformunda bir araya getirir.",
-
-    items: [
-      {
-        number: "01",
-        title: "Bilgi Kütüphanesi",
-        description:
-          "Güvenilir dokümanları ekibinizin bilgisine odaklanan çalışma alanlarında düzenleyin.",
-        meta: "Dokümanlar tek yerde",
-      },
-      {
-        number: "02",
-        title: "Akıllı Arama",
-        description:
-          "Sorunuz farklı kelimeler kullansa bile ilgili bilgileri bulun.",
-        meta: "Anlama göre keşif",
-      },
-      {
-        number: "03",
-        title: "Kaynaklı Yanıtlar",
-        description:
-          "Destekleyen bilgiyi görünür ve incelenebilir tutarken net yanıtlar alın.",
-        meta: "Görünür yanıt kanıtı",
-      },
-      {
-        number: "04",
-        title: "Akıllı İş Akışları",
-        description:
-          "Adımlarını ve sonuçlarını inceleyebileceğiniz bilgi odaklı iş akışları yürütün.",
-        meta: "Yönlendirilmiş işlemler",
-      },
-      {
-        number: "05",
-        title: "Bilgi Çalışma Alanları",
-        description:
-          "Dokümanları, bağlamı ve akıllı iş akışlarını net bir kapsam etrafında düzenleyin.",
-        meta: "Odaklı bağlam",
-      },
-      {
-        number: "06",
-        title: "Etkinlik Görünürlüğü",
-        description:
-          "Sistemi kara kutu olarak görmek yerine yanıtların ve iş akışlarının nasıl ilerlediğini görün.",
-        meta: "İncelenebilir etkinlik",
-      },
-    ],
-  },
-
-  audience: {
-    eyebrow: "BİLGİ YOĞUN ÇALIŞMALAR İÇİN",
-    title: "Tek bir bilgi katmanı.",
-    titleSecond: "Farklı çalışma biçimleri.",
-    description:
-      "Ekipler dokümanlara, kurum içi bilgiye ve tekrar eden araştırmalara nerede ihtiyaç duyarsa Masteacon bu bilgiyi aranabilir ve kullanılabilir hale getirir.",
-
-    items: [
-      {
-        label: "ÜRÜN",
-        title: "Ürün ekipleri",
-        description:
-          "Gereksinimleri, ürün notlarını ve kurum içi kararları bağlamını kaybetmeden bulun.",
-      },
-      {
-        label: "MÜHENDİSLİK",
-        title: "Mühendislik ekipleri",
-        description:
-          "Teknik bilgileri, mimari notları ve operasyonel bağlamı doğal dil kullanarak bulun.",
-      },
-      {
-        label: "ARAŞTIRMA",
-        title: "Araştırma ekipleri",
-        description:
-          "Doküman koleksiyonlarını akıllıca keşfedin ve yanıtları destekleyen kanıtlarla bağlantılı tutun.",
-      },
-      {
-        label: "OPERASYON",
-        title: "Operasyon ekipleri",
-        description:
-          "Politikaları, prosedürleri ve kurum içi kaynakları aranabilir bir bilgi katmanına dönüştürün.",
+        title: "Doğrulayın ve harekete geçin",
+        description: "Yanıtı okuyun, dayandığı kaynakları kontrol edin ve güvenle ilerleyin.",
       },
     ],
   },
 
   trust: {
-    eyebrow: "GÜVEN & KONTROL",
-    title: "Yapay zekâ, nedenini",
-    accent: " görebildiğinizde daha değerlidir.",
+    eyebrow: "GÜVENLİK",
+    title: "Size söylediğine",
+    titleAccent: " — ve kimin görebildiğine güvenebilmeniz için kuruldu.",
     description:
-      "Masteacon bağlamı, kanıtı ve etkinliği görünür tutar; böylece ekipler bir yanıta güvenmeden önce onu neyin desteklediğini anlayabilir.",
-    signals: [
-      "Kaynak kanıtı",
-      "Çalışma alanı bağlamı",
-      "İlgili bağlam",
-      "İş akışı geçmişi",
+      "Her çalışma alanı veritabanı seviyesinde izole edilir, her yanıt yalnızca getirilen kanıta dayanır ve bir ajanın attığı her adım çalışmadan önce sizin yetkilerinize göre kontrol edilir.",
+    points: [
+      "Çalışma alanı verisi hesaplar arasında asla görünmez",
+      "Yanıtlar yalnızca getirilen bağlamdan üretilir",
+      "Bir yanıtta gösterilen her kaynak bağımsız olarak doğrulanabilir",
+      "Ajan araç çağrıları her istekte yetki kontrolünden geçer",
     ],
-    flowLabel: "MASTEACON / GÜVENİLİR YANIT AKIŞI",
-    flowTitle: "Her yanıttan önce bağlam",
-
-    stages: [
-      {
-        number: "01",
-        title: "Bilgi",
-        description: "Güvenilir çalışma alanı bilgisi",
-      },
-      {
-        number: "02",
-        title: "İlgili bağlam",
-        description: "Soru için önemli olanı bulur",
-      },
-      {
-        number: "03",
-        title: "Kanıt",
-        description: "Destekleyen bilgiyi bağlantılı tutar",
-      },
-    ],
-
-    statusLabel: "Yanıt durumu",
-    statusTitle: "Kaynaklar bağlı",
-    ready: "HAZIR",
   },
 
   faq: {
     eyebrow: "SSS",
     title: "Başlamadan önce",
-    titleSecond: "bilmeniz gerekenler.",
-
     items: [
       {
         question: "Masteacon nedir?",
         answer:
-          "Masteacon; dokümanları düzenlemek, ilgili bilgiyi bulmak ve güvenilir bilgilerden net yanıtlar üretmek için tasarlanmış bir bilgi zekâsı platformudur.",
+          "Bir bilgi asistanı: dokümanlarınızı yükleyin, doğal dille sorular sorun. Yanıtlar kendi içeriğinize dayanır ve kontrol edebileceğiniz kaynaklar taşır.",
       },
       {
-        question: "Masteacon ilgili bilgiyi nasıl bulur?",
+        question: "Doğru bilgiyi nasıl bulur?",
         answer:
-          "Masteacon anlamı ve bağlamı dikkate alır; böylece sorunuz dokümandaki ifadeden farklı olsa bile ilişkili bilgiyi bulabilir.",
+          "Anlam tabanlı aramayı anahtar kelime eşleşmesiyle birleştirir; sorunuz dokümanın birebir ifadesini kullanmasa bile ilgili pasajları bulur.",
       },
       {
-        question: "Masteacon yanıtları nasıl güvenilir tutar?",
+        question: "Yanıtlara güvenebilir miyim?",
         answer:
-          "Masteacon çalışma alanınızdaki ilgili bilgiyi kullanır ve destekleyen kaynakları görünür tutar; böylece yanıtın neye dayandığını inceleyebilirsiniz.",
+          "Her yanıt, dayandığı belirli pasajları gösterir. Dokümanlarınızda güvenle yanıt verecek yeterli bilgi yoksa, tahmin etmek yerine bunu açıkça söyler.",
       },
       {
-        question: "Hangi doküman türleri destekleniyor?",
-        answer:
-          "Mevcut bilgi kütüphanesi PDF, DOCX ve TXT dokümanlarını destekliyor.",
+        question: "Hangi dosya türleri destekleniyor?",
+        answer: "Şu an için PDF, Word (.docx) ve düz metin dosyaları.",
       },
       {
-        question: "Masteacon iş akışları ne yapabilir?",
+        question: "Verilerim diğer hesaplardan izole mi?",
         answer:
-          "Masteacon desteklenen bilgi ve çalışma alanı işlemlerini gerçekleştirebilir, net sonuçlar döndürebilir ve süreçte izlenen adımları gösterebilir.",
+          "Evet. Her çalışma alanı veritabanı seviyesinde sınırlandırılır — hiçbir sorgu, arama ya da ajan işlemi ait olmadığı çalışma alanının dışına asla ulaşamaz.",
       },
     ],
   },
 
   finalCta: {
-    eyebrow: "GÜVENİLİR BİLGİ · NET YANITLAR",
+    eyebrow: "BAŞLAYIN",
     title: "Bilginiz zaten var. Onu kullanılabilir hale getirin.",
     button: "Çalışma alanınızı oluşturun",
   },
 
   footer: {
-    description:
-      "Güvenebileceği yanıtlara ihtiyaç duyan ekipler için bilgi zekâsı.",
+    description: "Güvenebileceği yanıtlara ihtiyaç duyan ekipler için bilgi zekâsı.",
+    product: "Ürün",
+    productLinks: ["Komuta Merkezi", "Bilgi Kütüphanesi", "Masteacon'a Sor", "Ajan"],
+    explore: "Keşfet",
+    exploreLinks: ["Özellikler", "Nasıl çalışır", "Güvenlik"],
     signIn: "Giriş yap",
     create: "Hesap oluştur",
   },

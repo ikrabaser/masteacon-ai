@@ -1,12 +1,19 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+
+import { ChatIcon, CheckIcon, FolderIcon, MenuIcon, SearchIcon, SparkleIcon, XIcon } from "../components/icons";
 import { LocaleSwitcher } from "../components/LocaleSwitcher";
 import { Logo } from "../components/Logo";
 import { ThemeSwitcher } from "../components/ThemeSwitcher";
 import { useI18n } from "../context/I18nContext";
 import { landingTranslations } from "../i18n/landingTranslations";
 
-type PreviewKey = "command" | "library" | "chat" | "agent";
+const FEATURE_ICONS = {
+  search: SearchIcon,
+  chat: ChatIcon,
+  folder: FolderIcon,
+  sparkle: SparkleIcon,
+} as const;
 
 export function LandingPage() {
   const { locale } = useI18n();
@@ -15,34 +22,23 @@ export function LandingPage() {
   useEffect(() => {
     document.title = copy.seo.title;
 
-    let description = document.querySelector<HTMLMetaElement>(
-      'meta[name="description"]',
-    );
-
+    let description = document.querySelector<HTMLMetaElement>('meta[name="description"]');
     if (!description) {
       description = document.createElement("meta");
       description.name = "description";
       document.head.appendChild(description);
     }
-
     description.content = copy.seo.description;
   }, [copy.seo.description, copy.seo.title]);
 
-  // Scroll-reveal: fades/rises each section in as it enters the viewport.
-  // Gated behind `prefers-reduced-motion` and only turned on once we've
-  // actually found elements to observe, so a JS failure never leaves
-  // content permanently invisible (see the [data-reveal="ready"] CSS guard).
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
   useEffect(() => {
     const root = document.querySelector<HTMLElement>(".masteacon-landing");
     if (!root) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
 
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      return;
-    }
-
-    const targets = root.querySelectorAll<HTMLElement>(
-      ".masteacon-landing-hero-copy, .masteacon-landing-hero-visual, .masteacon-landing-section",
-    );
+    const targets = root.querySelectorAll<HTMLElement>(".masteacon-landing-hero-copy, .reveal");
     if (targets.length === 0) return;
 
     root.setAttribute("data-reveal", "ready");
@@ -61,10 +57,6 @@ export function LandingPage() {
 
     targets.forEach((el) => observer.observe(el));
 
-    // Safety net: if IntersectionObserver never fires for some reason (an
-    // old browser, a background/non-composited tab, ...), force every
-    // section visible after a short delay instead of leaving it stuck at
-    // opacity 0 forever.
     const fallback = window.setTimeout(() => {
       targets.forEach((el) => el.classList.add("is-visible"));
     }, 1500);
@@ -75,33 +67,11 @@ export function LandingPage() {
     };
   }, []);
 
-  const [activePreview, setActivePreview] =
-    useState<PreviewKey>("command");
-
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-
-  const previewTabs = [
-    {
-      key: "command" as const,
-      ...copy.preview.tabs.command,
-    },
-    {
-      key: "library" as const,
-      ...copy.preview.tabs.library,
-    },
-    {
-      key: "chat" as const,
-      ...copy.preview.tabs.chat,
-    },
-    {
-      key: "agent" as const,
-      ...copy.preview.tabs.agent,
-    },
+  const navLinks = [
+    { href: "#features", label: copy.nav.features },
+    { href: "#how-it-works", label: copy.nav.howItWorks },
+    { href: "#security", label: copy.nav.security },
   ];
-
-  const selectedPreview =
-    previewTabs.find((tab) => tab.key === activePreview) ??
-    previewTabs[0];
 
   return (
     <main className="masteacon-landing">
@@ -109,20 +79,16 @@ export function LandingPage() {
       <div className="masteacon-landing-ambient masteacon-landing-ambient-two" />
 
       <header className="masteacon-landing-header">
-        <Link
-          to="/"
-          className="masteacon-landing-brand"
-          aria-label="Masteacon"
-        >
-          <Logo size={34} withWordmark />
+        <Link to="/" className="masteacon-landing-brand" aria-label="Masteacon">
+          <Logo size={32} withWordmark />
         </Link>
 
         <nav className="masteacon-landing-nav">
-          <a href="#product">{copy.nav.product}</a>
-          <a href="#solutions">{copy.nav.solutions}</a>
-          <a href="#how-it-works">{copy.nav.howItWorks}</a>
-          <a href="#architecture">{copy.nav.architecture}</a>
-          <a href="#security">{copy.nav.security}</a>
+          {navLinks.map((link) => (
+            <a key={link.href} href={link.href}>
+              {link.label}
+            </a>
+          ))}
         </nav>
 
         <div className="masteacon-landing-actions">
@@ -143,18 +109,11 @@ export function LandingPage() {
           <button
             type="button"
             className="masteacon-landing-menu-button"
-            aria-label={
-              mobileMenuOpen
-                ? copy.nav.closeMenu
-                : copy.nav.openMenu
-            }
+            aria-label={mobileMenuOpen ? copy.nav.closeMenu : copy.nav.openMenu}
             aria-expanded={mobileMenuOpen}
-            onClick={() =>
-              setMobileMenuOpen((current) => !current)
-            }
+            onClick={() => setMobileMenuOpen((current) => !current)}
           >
-            <span />
-            <span />
+            {mobileMenuOpen ? <XIcon width={20} height={20} /> : <MenuIcon width={20} height={20} />}
           </button>
         </div>
       </header>
@@ -169,50 +128,15 @@ export function LandingPage() {
           />
 
           <div className="masteacon-landing-mobile-menu">
-            <div className="masteacon-landing-mobile-menu-label">
-              {copy.nav.explore}
-            </div>
+            <div className="masteacon-landing-mobile-menu-label">{copy.nav.explore}</div>
 
             <nav>
-              <a
-                href="#product"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                <span>01</span>
-                {copy.nav.product}
-              </a>
-
-              <a
-                href="#solutions"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                <span>02</span>
-                {copy.nav.solutions}
-              </a>
-
-              <a
-                href="#how-it-works"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                <span>03</span>
-                {copy.nav.howItWorks}
-              </a>
-
-              <a
-                href="#architecture"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                <span>04</span>
-                {copy.nav.architecture}
-              </a>
-
-              <a
-                href="#security"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                <span>05</span>
-                {copy.nav.security}
-              </a>
+              {navLinks.map((link, index) => (
+                <a key={link.href} href={link.href} onClick={() => setMobileMenuOpen(false)}>
+                  <span>{String(index + 1).padStart(2, "0")}</span>
+                  {link.label}
+                </a>
+              ))}
             </nav>
 
             <div className="masteacon-landing-mobile-preferences">
@@ -221,18 +145,11 @@ export function LandingPage() {
             </div>
 
             <div className="masteacon-landing-mobile-account">
-              <Link
-                to="/login"
-                onClick={() => setMobileMenuOpen(false)}
-              >
+              <Link to="/login" onClick={() => setMobileMenuOpen(false)}>
                 {copy.nav.signIn}
               </Link>
 
-              <Link
-                to="/register"
-                className="primary"
-                onClick={() => setMobileMenuOpen(false)}
-              >
+              <Link to="/register" className="primary" onClick={() => setMobileMenuOpen(false)}>
                 {copy.nav.getStarted}
                 <span aria-hidden="true">→</span>
               </Link>
@@ -253,23 +170,15 @@ export function LandingPage() {
             <span>{copy.hero.titleAccent}</span>
           </h1>
 
-          <p className="masteacon-landing-hero-description">
-            {copy.hero.description}
-          </p>
+          <p className="masteacon-landing-hero-description">{copy.hero.description}</p>
 
           <div className="masteacon-landing-hero-actions">
-            <Link
-              to="/register"
-              className="masteacon-landing-primary"
-            >
+            <Link to="/register" className="masteacon-landing-primary">
               {copy.hero.primary}
               <span aria-hidden="true">→</span>
             </Link>
 
-            <a
-              href="#product"
-              className="masteacon-landing-secondary"
-            >
+            <a href="#how-it-works" className="masteacon-landing-secondary">
               {copy.hero.secondary}
             </a>
           </div>
@@ -283,435 +192,107 @@ export function LandingPage() {
 
         <div className="masteacon-landing-hero-visual">
           <div className="masteacon-landing-hero-mockup">
-            <div className="masteacon-product-window-bar">
-              <div className="masteacon-product-window-dots">
-                <span />
-                <span />
-                <span />
-              </div>
-
-              <span className="masteacon-product-window-title">
-                Masteacon
-              </span>
-
-              <span className="masteacon-product-window-status">
-                <i />
-                {copy.preview.grounded}
-              </span>
+            <div className="masteacon-landing-hero-mockup-bar">
+              <span />
+              <span />
+              <span />
+              <span className="masteacon-landing-hero-mockup-title">Masteacon / {copy.mockup.workspaceLabel}</span>
             </div>
 
             <div className="masteacon-landing-hero-mockup-body">
               <div className="masteacon-landing-hero-mockup-input">
-                <span>{copy.preview.question}</span>
-                <span
-                  className="masteacon-landing-hero-mockup-send"
-                  aria-hidden="true"
-                >
+                <span>{copy.mockup.question}</span>
+                <span className="masteacon-landing-hero-mockup-send" aria-hidden="true">
                   →
                 </span>
               </div>
 
-              <div className="masteacon-preview-answer masteacon-landing-hero-mockup-answer">
-                <div className="masteacon-preview-answer-mark">
-                  <Logo size={22} />
-                </div>
+              <div className="masteacon-landing-hero-mockup-answer">
+                <span className="masteacon-landing-hero-mockup-answer-label">{copy.mockup.answerLabel}</span>
+                <p>{copy.mockup.answerTitle}</p>
 
-                <div>
-                  <strong>{copy.preview.answerReady}</strong>
-                  <p>{copy.preview.answerDescription}</p>
+                <div className="masteacon-landing-hero-mockup-sources">
+                  <span>{copy.mockup.sourceLabel}</span>
+                  {copy.mockup.sources.map((source, index) => (
+                    <span key={source} className="masteacon-landing-hero-mockup-source">
+                      {index + 1}. {source}
+                    </span>
+                  ))}
                 </div>
-              </div>
-
-              <div className="masteacon-preview-sources">
-                <span>01 · product-notes.txt</span>
-                <span>02 · company-policy.txt</span>
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      <section
-        id="product"
-        className="masteacon-landing-section masteacon-product-showcase"
-      >
+      <section id="features" className="masteacon-landing-section reveal masteacon-features-section">
         <div className="masteacon-landing-section-heading">
-          <span>{copy.preview.sectionEyebrow}</span>
-
-          <h2>
-            {copy.preview.sectionTitle}
-            <br />
-            {copy.preview.sectionTitleSecond}
-          </h2>
-
-          <p>{copy.preview.sectionDescription}</p>
+          <span>{copy.features.eyebrow}</span>
+          <h2>{copy.features.title}</h2>
         </div>
 
-        <div className="masteacon-product-tabs" role="tablist">
-          {previewTabs.map((tab) => (
-            <button
-              key={tab.key}
-              type="button"
-              role="tab"
-              aria-selected={activePreview === tab.key}
-              className={activePreview === tab.key ? "active" : ""}
-              onClick={() => setActivePreview(tab.key)}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
-
-        <div className="masteacon-product-window">
-          <div className="masteacon-product-window-bar">
-            <div className="masteacon-product-window-dots">
-              <span />
-              <span />
-              <span />
-            </div>
-
-            <span className="masteacon-product-window-title">
-              Masteacon / {selectedPreview.label}
-            </span>
-
-            <span className="masteacon-product-window-status">
-              <i />
-              {copy.preview.grounded}
-            </span>
-          </div>
-
-          <div className="masteacon-product-window-body">
-            <aside className="masteacon-product-mini-sidebar">
-              <Logo size={29} />
-
-              <div className="masteacon-product-mini-nav">
-                {previewTabs.map((tab) => (
-                  <span
-                    key={tab.key}
-                    className={
-                      activePreview === tab.key ? "active" : ""
-                    }
-                  >
-                    {tab.label}
-                  </span>
-                ))}
-              </div>
-            </aside>
-
-            <div className="masteacon-product-preview-content">
-              <div className="masteacon-product-preview-copy">
-                <span>{selectedPreview.eyebrow}</span>
-                <h3>{selectedPreview.title}</h3>
-                <p>{selectedPreview.description}</p>
-              </div>
-
-              <div className="masteacon-product-preview-grid">
-                <article className="masteacon-product-preview-primary">
-                  <span className="masteacon-preview-label">
-                    {copy.preview.ask}
-                  </span>
-
-                  <h4>{copy.preview.question}</h4>
-
-                  <div className="masteacon-preview-answer">
-                    <div className="masteacon-preview-answer-mark">
-                      <Logo size={26} />
-                    </div>
-
-                    <div>
-                      <strong>{copy.preview.answerReady}</strong>
-                      <p>{copy.preview.answerDescription}</p>
-                    </div>
-                  </div>
-
-                  <div className="masteacon-preview-sources">
-                    <span>01 · product-notes.txt</span>
-                    <span>02 · company-policy.txt</span>
-                  </div>
-                </article>
-
-                <div className="masteacon-product-preview-side">
-                  <article>
-                    <span>{selectedPreview.metricLabel}</span>
-                    <strong>{selectedPreview.metricValue}</strong>
-                    <small>{copy.preview.liveSignal}</small>
-                  </article>
-
-                  <article>
-                    <span>{copy.preview.relevantContext}</span>
-                    <strong>{copy.preview.grounded}</strong>
-                    <small>{copy.preview.liveSignal}</small>
-                  </article>
-                </div>
-              </div>
-            </div>
-          </div>
+        <div className="masteacon-features-grid">
+          {copy.features.items.map((item) => {
+            const FeatureIcon = FEATURE_ICONS[item.icon as keyof typeof FEATURE_ICONS];
+            return (
+              <article key={item.title} className="masteacon-feature-card">
+                <span className="masteacon-feature-icon">
+                  <FeatureIcon width={20} height={20} />
+                </span>
+                <h3>{item.title}</h3>
+                <p>{item.description}</p>
+              </article>
+            );
+          })}
         </div>
       </section>
 
-      <section
-        id="solutions"
-        className="masteacon-landing-section masteacon-problem-section"
-      >
-        <div className="masteacon-problem-heading">
-          <span>{copy.problem.eyebrow}</span>
-
-          <h2>
-            {copy.problem.title}
-            <br />
-            <em>{copy.problem.accent}</em>
-          </h2>
-
-          <p>{copy.problem.description}</p>
-        </div>
-
-        <div className="masteacon-problem-grid">
-          <article className="masteacon-problem-card without">
-            <div className="masteacon-problem-card-heading">
-              <span>{copy.problem.without}</span>
-              <strong>{copy.problem.withoutTitle}</strong>
-            </div>
-
-            <ul>
-              {copy.problem.withoutItems.map((item) => (
-                <li key={item}>
-                  <span aria-hidden="true">×</span>
-                  {item}
-                </li>
-              ))}
-            </ul>
-          </article>
-
-          <article
-            className="masteacon-problem-card with"
-            data-label={copy.problem.badge}
-          >
-            <div className="masteacon-problem-card-heading">
-              <span>{copy.problem.with}</span>
-              <strong>{copy.problem.withTitle}</strong>
-            </div>
-
-            <ul>
-              {copy.problem.withItems.map((item) => (
-                <li key={item}>
-                  <span aria-hidden="true">✓</span>
-                  {item}
-                </li>
-              ))}
-            </ul>
-          </article>
-        </div>
-      </section>
-
-      <section
-        id="how-it-works"
-        className="masteacon-landing-section masteacon-how-section"
-      >
-        <div className="masteacon-how-intro">
-          <span>{copy.steps.eyebrow}</span>
-          <h2>{copy.steps.title}</h2>
+      <section id="how-it-works" className="masteacon-landing-section reveal masteacon-how-section">
+        <div className="masteacon-landing-section-heading">
+          <span>{copy.how.eyebrow}</span>
+          <h2>{copy.how.title}</h2>
         </div>
 
         <div className="masteacon-how-grid">
-          {copy.steps.items.map((item) => (
-            <article key={item.number}>
-              <span>{item.number}</span>
-              <h3>{item.title}</h3>
-              <p>{item.description}</p>
+          {copy.how.steps.map((step) => (
+            <article key={step.number}>
+              <span>{step.number}</span>
+              <h3>{step.title}</h3>
+              <p>{step.description}</p>
             </article>
           ))}
         </div>
       </section>
 
-      <section
-        id="architecture"
-        className="masteacon-landing-section masteacon-architecture-section"
-      >
-        <div className="masteacon-architecture-heading">
-          <span>{copy.architecture.eyebrow}</span>
-
-          <div>
-            <h2>
-              {copy.architecture.title}
-              <br />
-              {copy.architecture.titleSecond}
-            </h2>
-
-            <p>{copy.architecture.description}</p>
-          </div>
-        </div>
-
-        <div className="masteacon-architecture-flow">
-          {copy.architecture.stages.map((stage, index) => (
-            <div key={stage.number} className="masteacon-architecture-stage-fragment">
-              <article>
-                <span>{stage.number}</span>
-                <strong>{stage.title}</strong>
-                <small>{stage.description}</small>
-              </article>
-
-              {index < copy.architecture.stages.length - 1 && (
-                <i>→</i>
-              )}
-            </div>
-          ))}
-        </div>
-
-        <div className="masteacon-architecture-retrieval">
-          <div className="masteacon-architecture-query">
-            <span>{copy.architecture.questionLabel}</span>
-            <strong>{copy.architecture.question}</strong>
-          </div>
-
-          <div className="masteacon-architecture-beam">
-            {copy.architecture.flow.map((item, index) => (
-              <div key={item} className="masteacon-architecture-beam-fragment">
-                <span>{item}</span>
-
-                {index < copy.architecture.flow.length - 1 && (
-                  <i />
-                )}
-              </div>
-            ))}
-          </div>
-
-          <div className="masteacon-architecture-answer">
-            <Logo size={42} mColor="#F5F1E8" />
-
-            <div>
-              <span>{copy.architecture.answerLabel}</span>
-              <strong>{copy.architecture.answerTitle}</strong>
-              <small>{copy.architecture.answerDescription}</small>
-            </div>
-          </div>
-        </div>
-
-        <div className="masteacon-architecture-foot">
-          {copy.architecture.signals.map((signal) => (
-            <span key={signal}>{signal}</span>
-          ))}
-        </div>
-      </section>
-
-      <section className="masteacon-landing-section masteacon-capabilities-section">
-        <div className="masteacon-capabilities-heading">
-          <span>{copy.capabilities.eyebrow}</span>
-
-          <div>
-            <h2>
-              {copy.capabilities.title}
-              <br />
-              {copy.capabilities.titleSecond}
-            </h2>
-
-            <p>{copy.capabilities.description}</p>
-          </div>
-        </div>
-
-        <div className="masteacon-capabilities-grid">
-          {copy.capabilities.items.map((item) => (
-            <article key={item.number}>
-              <span>{item.number}</span>
-              <strong>{item.title}</strong>
-              <p>{item.description}</p>
-              <small>{item.meta}</small>
-            </article>
-          ))}
-        </div>
-      </section>
-
-      <section className="masteacon-landing-section masteacon-audience-section">
-        <div className="masteacon-audience-intro">
-          <span>{copy.audience.eyebrow}</span>
-
-          <h2>
-            {copy.audience.title}
-            <br />
-            {copy.audience.titleSecond}
-          </h2>
-
-          <p>{copy.audience.description}</p>
-        </div>
-
-        <div className="masteacon-audience-grid">
-          {copy.audience.items.map((item) => (
-            <article key={item.label}>
-              <span>{item.label}</span>
-              <h3>{item.title}</h3>
-              <p>{item.description}</p>
-            </article>
-          ))}
-        </div>
-      </section>
-
-      <section
-        id="security"
-        className="masteacon-landing-section masteacon-trust-section"
-      >
+      <section id="security" className="masteacon-landing-section reveal masteacon-trust-section">
         <div className="masteacon-trust-copy">
-          <span>{copy.trust.eyebrow}</span>
+          <span className="masteacon-landing-eyebrow">
+            <span className="masteacon-landing-eyebrow-dot" />
+            {copy.trust.eyebrow}
+          </span>
 
           <h2>
             {copy.trust.title}
-            <em>{copy.trust.accent}</em>
+            <em>{copy.trust.titleAccent}</em>
           </h2>
 
           <p>{copy.trust.description}</p>
-
-          <div className="masteacon-trust-signals">
-            {copy.trust.signals.map((signal) => (
-              <span key={signal}>
-                <i />
-                {signal}
-              </span>
-            ))}
-          </div>
         </div>
 
-        <div className="masteacon-trust-visual">
-          <div className="masteacon-trust-visual-top">
-            <span>{copy.trust.flowLabel}</span>
-            <strong>{copy.trust.flowTitle}</strong>
-          </div>
-
-          <div className="masteacon-trust-flow">
-            {copy.trust.stages.map((stage, index) => (
-              <div key={stage.number} className="masteacon-trust-stage-fragment">
-                <div>
-                  <span>{stage.number}</span>
-                  <strong>{stage.title}</strong>
-                  <small>{stage.description}</small>
-                </div>
-
-                {index < copy.trust.stages.length - 1 && (
-                  <i>→</i>
-                )}
-              </div>
-            ))}
-          </div>
-
-          <div className="masteacon-trust-source">
-            <Logo size={28} mColor="#F5F1E8" />
-
-            <div>
-              <span>{copy.trust.statusLabel}</span>
-              <strong>{copy.trust.statusTitle}</strong>
-            </div>
-
-            <small>{copy.trust.ready}</small>
-          </div>
-        </div>
+        <ul className="masteacon-trust-list">
+          {copy.trust.points.map((point) => (
+            <li key={point}>
+              <CheckIcon width={16} height={16} />
+              {point}
+            </li>
+          ))}
+        </ul>
       </section>
 
-      <section className="masteacon-landing-section masteacon-faq-section">
+      <section className="masteacon-landing-section reveal masteacon-faq-section">
         <div className="masteacon-faq-heading">
           <span>{copy.faq.eyebrow}</span>
-
-          <h2>
-            {copy.faq.title}
-            <br />
-            {copy.faq.titleSecond}
-          </h2>
+          <h2>{copy.faq.title}</h2>
         </div>
 
         <div className="masteacon-faq-list">
@@ -721,17 +302,13 @@ export function LandingPage() {
                 <span>{item.question}</span>
                 <i>+</i>
               </summary>
-
               <p>{item.answer}</p>
             </details>
           ))}
         </div>
       </section>
 
-      <section
-        id="final-cta"
-        className="masteacon-landing-section masteacon-landing-final-cta"
-      >
+      <section className="masteacon-landing-section reveal masteacon-landing-final-cta">
         <div>
           <span>{copy.finalCta.eyebrow}</span>
           <h2>{copy.finalCta.title}</h2>
@@ -743,39 +320,34 @@ export function LandingPage() {
         </Link>
       </section>
 
-      <footer className="masteacon-landing-footer masteacon-landing-footer-full">
+      <footer className="masteacon-landing-footer">
         <div className="masteacon-footer-brand">
-          <Logo size={34} withWordmark />
-
+          <Logo size={30} withWordmark />
           <p>{copy.footer.description}</p>
-
           <span>© 2026 Masteacon</span>
         </div>
 
         <div className="masteacon-footer-column">
-          <strong>{copy.nav.product}</strong>
-
-          <a href="#product">{copy.preview.tabs.command.label}</a>
-          <a href="#product">{copy.preview.tabs.library.label}</a>
-          <a href="#product">{copy.preview.tabs.chat.label}</a>
-          <a href="#product">{copy.preview.tabs.agent.label}</a>
+          <strong>{copy.footer.product}</strong>
+          {copy.footer.productLinks.map((label) => (
+            <a key={label} href="#features">
+              {label}
+            </a>
+          ))}
         </div>
 
         <div className="masteacon-footer-column">
-          <strong>{copy.nav.explore}</strong>
-
-          <a href="#solutions">{copy.nav.solutions}</a>
-          <a href="#how-it-works">{copy.nav.howItWorks}</a>
-          <a href="#architecture">{copy.nav.architecture}</a>
-          <a href="#security">{copy.nav.security}</a>
+          <strong>{copy.footer.explore}</strong>
+          {navLinks.map((link) => (
+            <a key={link.href} href={link.href}>
+              {link.label}
+            </a>
+          ))}
         </div>
 
         <div className="masteacon-footer-column masteacon-footer-account">
           <strong>Masteacon</strong>
-
           <Link to="/login">{copy.footer.signIn}</Link>
-          <Link to="/register">{copy.footer.create}</Link>
-
           <Link to="/register" className="masteacon-footer-primary">
             {copy.nav.getStarted}
             <span aria-hidden="true">→</span>
