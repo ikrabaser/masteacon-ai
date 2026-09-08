@@ -28,7 +28,6 @@ import {
   UploadIcon,
   WarningIcon,
 } from "../components/icons";
-import { Logo } from "../components/Logo";
 
 import { useAuth } from "../context/AuthContext";
 import { useI18n } from "../context/I18nContext";
@@ -671,22 +670,6 @@ export function OverviewPage() {
               </div>
             )}
           </div>
-
-          <div
-            className="kc-beacon-visual"
-            aria-hidden="true"
-          >
-            <div className="kc-beacon-ring kc-beacon-ring-one" />
-            <div className="kc-beacon-ring kc-beacon-ring-two" />
-            <div className="kc-beacon-ring kc-beacon-ring-three" />
-
-            <div className="kc-beacon-ray" />
-            <div className="kc-beacon-core" />
-
-            <div className="kc-beacon-logo">
-              <Logo size={112} />
-            </div>
-          </div>
         </article>
 
         <article className="kc-card kc-health-card">
@@ -905,46 +888,6 @@ export function OverviewPage() {
               <span>{copy.workspaceMetric}</span>
               <strong>{workspaces.length}</strong>
             </div>
-          </div>
-
-          <div className="kc-insights-signal">
-            <svg
-              viewBox="0 0 320 78"
-              preserveAspectRatio="none"
-              aria-hidden="true"
-            >
-              <defs>
-                <linearGradient
-                  id="kc-signal-fill"
-                  x1="0"
-                  y1="0"
-                  x2="0"
-                  y2="1"
-                >
-                  <stop
-                    offset="0%"
-                    stopColor="currentColor"
-                    stopOpacity="0.22"
-                  />
-                  <stop
-                    offset="100%"
-                    stopColor="currentColor"
-                    stopOpacity="0"
-                  />
-                </linearGradient>
-              </defs>
-
-              <path
-                className="kc-signal-fill"
-                d="M0 62 C25 55 35 36 60 43 C88 51 99 67 126 50 C152 34 159 29 181 42 C210 58 218 25 247 31 C275 36 290 24 320 18 L320 78 L0 78 Z"
-                fill="url(#kc-signal-fill)"
-              />
-
-              <path
-                className="kc-signal-line"
-                d="M0 62 C25 55 35 36 60 43 C88 51 99 67 126 50 C152 34 159 29 181 42 C210 58 218 25 247 31 C275 36 290 24 320 18"
-              />
-            </svg>
           </div>
         </article>
       </section>
