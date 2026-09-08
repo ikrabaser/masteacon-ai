@@ -695,10 +695,7 @@ export function ChatPage() {
         <main className="ask-thread">
           {!activeConversation && (
             <div className="ask-thread-empty">
-              <div className="ask-empty-beacon">
-                <div className="ask-empty-ring ask-empty-ring-one" />
-                <div className="ask-empty-ring ask-empty-ring-two" />
-
+              <div className="ask-empty-mark">
                 <Logo size={88} />
               </div>
 
