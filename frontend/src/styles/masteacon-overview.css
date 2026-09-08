@@ -6,6 +6,15 @@
   width: 100%;
   max-width: 1500px;
   margin: 0 auto;
+
+  --kc-radius-xs: 7px;
+  --kc-radius-sm: 9px;
+  --kc-radius-md: 10px;
+  --kc-radius-lg: 14px;
+  --kc-radius-pill: 999px;
+
+  --kc-shadow-sm: 0 16px 46px rgba(0, 0, 0, 0.08);
+  --kc-shadow-md: 0 20px 56px rgba(0, 0, 0, 0.17);
 }
 
 .kc-error-banner {
@@ -14,7 +23,7 @@
   gap: 10px;
   margin-bottom: 16px;
   padding: 12px 16px;
-  border-radius: 12px;
+  border-radius: var(--kc-radius-lg);
   border: 1px solid rgba(217, 119, 6, 0.35);
   background: rgba(217, 119, 6, 0.1);
   color: #92400e;
@@ -34,7 +43,7 @@
 .kc-error-banner button {
   flex-shrink: 0;
   padding: 6px 12px;
-  border-radius: 999px;
+  border-radius: var(--kc-radius-pill);
   border: 1px solid currentColor;
   background: transparent;
   color: inherit;
@@ -139,7 +148,7 @@
   padding: 0 10px 0 12px;
 
   border: 1px solid var(--border);
-  border-radius: 9px;
+  border-radius: var(--kc-radius-sm);
 
   background: rgba(255, 255, 255, 0.018);
 
@@ -187,7 +196,7 @@
   padding: 3px 6px;
 
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: var(--kc-radius-xs);
 
   background: var(--surface-sunken);
 
@@ -215,7 +224,7 @@
   cursor: pointer;
 
   border: 1px solid transparent;
-  border-radius: 9px;
+  border-radius: var(--kc-radius-sm);
 
   background: transparent;
 
@@ -329,7 +338,7 @@
   padding: 10px 12px;
 
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: var(--kc-radius-md);
 
   background: rgba(255, 255, 255, 0.012);
 }
@@ -371,7 +380,7 @@
   overflow: hidden;
 
   border: 1px solid var(--border);
-  border-radius: 13px;
+  border-radius: var(--kc-radius-lg);
 
   background:
     linear-gradient(
@@ -381,8 +390,7 @@
     ),
     var(--surface);
 
-  box-shadow:
-    0 16px 46px rgba(0, 0, 0, 0.08);
+  box-shadow: var(--kc-shadow-sm);
 
   transition:
     border-color 160ms ease,
@@ -524,7 +532,7 @@
   overflow: hidden;
 
   border: 1px solid rgba(221, 158, 44, 0.30);
-  border-radius: 14px;
+  border-radius: var(--kc-radius-lg);
 
   background:
     linear-gradient(
@@ -563,7 +571,7 @@
   position: relative;
   z-index: 3;
 
-  width: min(680px, 74%);
+  width: min(720px, 92%);
 }
 
 .kc-card-heading {
@@ -583,7 +591,7 @@
   flex-shrink: 0;
 
   border: 1px solid rgba(232, 174, 64, 0.22);
-  border-radius: 9px;
+  border-radius: var(--kc-radius-sm);
 
   background: rgba(223, 156, 39, 0.07);
 
@@ -626,7 +634,7 @@
   padding: 7px;
 
   border: 1px solid #243449;
-  border-radius: 10px;
+  border-radius: var(--kc-radius-md);
 
   background: rgba(3, 10, 18, 0.54);
 
@@ -716,7 +724,7 @@
   padding: 6px 9px;
 
   border: 1px solid #213146;
-  border-radius: 7px;
+  border-radius: var(--kc-radius-xs);
 
   background: rgba(255, 255, 255, 0.015);
 
@@ -743,129 +751,6 @@
   background: rgba(226, 165, 55, 0.055);
 
   color: #efc772;
-}
-
-/* ---------- Beacon visual ---------- */
-
-.kc-beacon-visual {
-  position: absolute;
-  z-index: 1;
-
-  right: 3%;
-  top: 50%;
-
-  width: 235px;
-  height: 235px;
-
-  transform: translateY(-50%);
-
-  pointer-events: none;
-}
-
-.kc-beacon-ring {
-  position: absolute;
-
-  left: 50%;
-  top: 31%;
-
-  border: 1px solid rgba(232, 175, 65, 0.15);
-  border-radius: 50%;
-
-  transform: translate(-50%, -50%);
-}
-
-.kc-beacon-ring-one {
-  width: 76px;
-  height: 76px;
-}
-
-.kc-beacon-ring-two {
-  width: 124px;
-  height: 124px;
-
-  opacity: 0.72;
-}
-
-.kc-beacon-ring-three {
-  width: 184px;
-  height: 184px;
-
-  opacity: 0.4;
-}
-
-.kc-beacon-ray {
-  position: absolute;
-
-  left: 50%;
-  top: 31%;
-
-  width: 58px;
-  height: 155px;
-
-  transform:
-    translate(-50%, -12%)
-    perspective(120px)
-    rotateX(2deg);
-
-  clip-path:
-    polygon(
-      47% 0,
-      53% 0,
-      100% 100%,
-      0 100%
-    );
-
-  background:
-    linear-gradient(
-      180deg,
-      rgba(255, 236, 187, 0.82),
-      rgba(232, 170, 54, 0.23) 38%,
-      transparent 86%
-    );
-
-  filter: blur(1px);
-
-  opacity: 0.55;
-}
-
-.kc-beacon-core {
-  position: absolute;
-  z-index: 3;
-
-  left: 50%;
-  top: 31%;
-
-  width: 70px;
-  height: 70px;
-
-  transform: translate(-50%, -50%);
-
-  border-radius: 50%;
-
-  background:
-    radial-gradient(
-      circle,
-      rgba(255, 250, 224, 1) 0,
-      rgba(245, 190, 82, 0.64) 6%,
-      rgba(228, 163, 47, 0.17) 26%,
-      transparent 65%
-    );
-}
-
-.kc-beacon-logo {
-  position: absolute;
-  z-index: 2;
-
-  left: 50%;
-  bottom: 18px;
-
-  transform: translateX(-50%);
-
-  color: rgba(238, 238, 232, 0.08);
-}
-
-.kc-beacon-logo .logo-mark {
-  filter: none;
 }
 
 /* =========================================================
@@ -1091,7 +976,7 @@
   padding: 11px;
 
   border: 1px solid var(--border);
-  border-radius: 9px;
+  border-radius: var(--kc-radius-sm);
 
   background: var(--surface-sunken);
 
@@ -1121,7 +1006,7 @@
   place-items: center;
 
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--kc-radius-sm);
 
   background: var(--surface);
 
@@ -1190,7 +1075,7 @@
   padding: 3px 5px;
 
   border: 1px solid var(--border);
-  border-radius: 999px;
+  border-radius: var(--kc-radius-pill);
 
   color: var(--text-faint);
 
@@ -1257,7 +1142,7 @@
   padding: 10px 8px;
 
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--kc-radius-sm);
 
   background: var(--surface-sunken);
 }
@@ -1298,7 +1183,7 @@
 
   overflow: hidden;
 
-  border-radius: 99px;
+  border-radius: var(--kc-radius-pill);
 
   background: var(--border);
 }
@@ -1306,7 +1191,7 @@
 .kc-metric-bar span {
   height: 100%;
 
-  border-radius: 99px;
+  border-radius: var(--kc-radius-pill);
 
   background:
     linear-gradient(
@@ -1314,31 +1199,6 @@
       #c8841c,
       #efb64b
     );
-}
-
-.kc-insights-signal {
-  height: 84px;
-
-  margin-top: 13px;
-
-  color: var(--brand-2);
-}
-
-.kc-insights-signal svg {
-  width: 100%;
-  height: 100%;
-
-  overflow: visible;
-}
-
-.kc-signal-line {
-  fill: none;
-
-  stroke: currentColor;
-
-  stroke-width: 1.5;
-
-  vector-effect: non-scaling-stroke;
 }
 
 /* =========================================================
@@ -1391,7 +1251,7 @@
   padding: 9px;
 
   border: 1px solid var(--border);
-  border-radius: 9px;
+  border-radius: var(--kc-radius-sm);
 
   background:
     linear-gradient(
@@ -1427,7 +1287,7 @@
   place-items: center;
 
   border: 1px solid rgba(225, 163, 52, 0.15);
-  border-radius: 8px;
+  border-radius: var(--kc-radius-sm);
 
   background: rgba(225, 163, 52, 0.06);
 
@@ -1499,7 +1359,7 @@
   padding: 5px 7px;
 
   border: 1px solid var(--border);
-  border-radius: 999px;
+  border-radius: var(--kc-radius-pill);
 
   color: var(--text-faint);
 
@@ -1653,7 +1513,7 @@
   padding: 4px 6px;
 
   border: 1px solid var(--border);
-  border-radius: 999px;
+  border-radius: var(--kc-radius-pill);
 
   color: var(--text-faint);
 
@@ -1701,7 +1561,7 @@
   place-items: center;
 
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--kc-radius-sm);
 
   background: var(--surface-sunken);
 }
@@ -1844,13 +1704,7 @@
   }
 
   .kc-ask-content {
-    width: 78%;
-  }
-
-  .kc-beacon-visual {
-    right: -3%;
-
-    opacity: 0.75;
+    width: 100%;
   }
 
   .kc-trace-flow {
@@ -1956,22 +1810,6 @@
     width: 100%;
   }
 
-  .kc-beacon-visual {
-    top: 7%;
-    right: 50%;
-
-    width: 170px;
-    height: 170px;
-
-    transform: translateX(50%);
-
-    opacity: 0.38;
-  }
-
-  .kc-beacon-logo {
-    display: none;
-  }
-
   .kc-document-grid {
     grid-template-columns: 1fr;
   }
@@ -2033,7 +1871,7 @@
   overflow: hidden;
 
   border: 1px solid rgba(225, 165, 55, 0.20);
-  border-radius: 10px;
+  border-radius: var(--kc-radius-md);
 
   background:
     radial-gradient(
@@ -2111,7 +1949,7 @@
   padding: 4px 6px;
 
   border: 1px solid rgba(92, 191, 137, 0.18);
-  border-radius: 999px;
+  border-radius: var(--kc-radius-pill);
 
   background: rgba(92, 191, 137, 0.055);
 
@@ -2190,7 +2028,7 @@
   padding: 6px 8px;
 
   border: 1px solid #25364b;
-  border-radius: 7px;
+  border-radius: var(--kc-radius-xs);
 
   background: rgba(255, 255, 255, 0.018);
 
