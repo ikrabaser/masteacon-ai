@@ -7,6 +7,12 @@
   max-width: 1480px;
 
   margin: 0 auto;
+
+  --ask-radius-xs: 7px;
+  --ask-radius-sm: 9px;
+  --ask-radius-md: 11px;
+  --ask-radius-lg: 15px;
+  --ask-radius-pill: 999px;
 }
 
 /* ---------- Page header ---------- */
@@ -74,7 +80,7 @@
   padding: 11px 13px;
 
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: var(--ask-radius-md);
 
   background: rgba(255, 255, 255, 0.014);
 }
@@ -145,7 +151,7 @@
   overflow: hidden;
 
   border: 1px solid var(--border);
-  border-radius: 15px;
+  border-radius: var(--ask-radius-lg);
 
   background: var(--surface);
 
@@ -209,7 +215,7 @@
 
   padding: 2px 5px;
 
-  border-radius: 99px;
+  border-radius: var(--ask-radius-pill);
 
   background: var(--surface);
 
@@ -230,7 +236,7 @@
   cursor: pointer;
 
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--ask-radius-xs);
 
   background: var(--surface);
 
@@ -251,7 +257,7 @@
   margin-bottom: 9px;
 
   border: 1px solid rgba(229, 168, 57, 0.22);
-  border-radius: 9px;
+  border-radius: var(--ask-radius-sm);
 
   background:
     linear-gradient(
@@ -300,7 +306,7 @@
   margin-bottom: 10px;
 
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--ask-radius-xs);
 
   background: var(--surface);
 }
@@ -365,7 +371,7 @@
   padding: 7px;
 
   border: 1px solid transparent;
-  border-radius: 9px;
+  border-radius: var(--ask-radius-sm);
 
   background: transparent;
 
@@ -404,7 +410,7 @@
   place-items: center;
 
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--ask-radius-xs);
 
   background: var(--surface);
 
@@ -633,7 +639,7 @@
   display: grid;
   place-items: center;
 
-  border-radius: 9px;
+  border-radius: var(--ask-radius-sm);
 }
 
 .ask-assistant-avatar {
@@ -701,7 +707,7 @@
   border: 1px solid
     rgba(91, 189, 136, 0.17);
 
-  border-radius: 999px;
+  border-radius: var(--ask-radius-pill);
 
   background:
     rgba(91, 189, 136, 0.045);
@@ -771,7 +777,7 @@
   border: 1px solid
     rgba(225, 164, 54, 0.14);
 
-  border-radius: 9px;
+  border-radius: var(--ask-radius-sm);
 
   background:
     rgba(225, 164, 54, 0.025);
@@ -800,7 +806,7 @@
 
   padding: 2px 4px;
 
-  border-radius: 99px;
+  border-radius: var(--ask-radius-pill);
 
   background:
     rgba(225, 164, 54, 0.08);
@@ -837,7 +843,7 @@
   padding: 7px;
 
   border: 1px solid var(--border);
-  border-radius: 7px;
+  border-radius: var(--ask-radius-xs);
 
   background: var(--surface);
 }
@@ -852,7 +858,7 @@
   border: 1px solid
     rgba(225, 164, 54, 0.13);
 
-  border-radius: 7px;
+  border-radius: var(--ask-radius-xs);
 
   background:
     rgba(225, 164, 54, 0.045);
@@ -908,7 +914,7 @@
   padding: 10px 12px;
 
   border: 1px solid var(--border);
-  border-radius: 9px;
+  border-radius: var(--ask-radius-sm);
 
   background: var(--surface-sunken);
 }
@@ -1018,7 +1024,7 @@
   padding: 8px 8px 8px 12px;
 
   border: 1px solid var(--border-strong);
-  border-radius: 11px;
+  border-radius: var(--ask-radius-md);
 
   background: var(--surface-sunken);
 
@@ -1090,7 +1096,7 @@
   border: 1px solid
     rgba(255, 225, 160, 0.27);
 
-  border-radius: 9px;
+  border-radius: var(--ask-radius-sm);
 
   background:
     linear-gradient(
@@ -1154,51 +1160,15 @@
   text-align: center;
 }
 
-.ask-empty-beacon {
-  position: relative;
-
-  width: 140px;
-  height: 115px;
-
+.ask-empty-mark {
   display: grid;
   place-items: center;
 
   margin-bottom: 14px;
 }
 
-.ask-empty-beacon .logo {
-  position: relative;
-  z-index: 2;
-
+.ask-empty-mark .logo {
   color: var(--text);
-}
-
-.ask-empty-ring {
-  position: absolute;
-
-  left: 50%;
-  top: 42%;
-
-  border: 1px solid
-    rgba(47, 145, 181, 0.16);
-
-  border-radius: 50%;
-
-  transform:
-    translate(-50%, -50%)
-    scaleY(0.56);
-}
-
-.ask-empty-ring-one {
-  width: 90px;
-  height: 90px;
-}
-
-.ask-empty-ring-two {
-  width: 135px;
-  height: 135px;
-
-  opacity: 0.55;
 }
 
 .ask-thread-empty > span,
@@ -1258,7 +1228,7 @@
   border: 1px solid
     rgba(225, 164, 54, 0.20);
 
-  border-radius: 8px;
+  border-radius: var(--ask-radius-xs);
 
   background:
     rgba(225, 164, 54, 0.06);
@@ -1273,7 +1243,7 @@
   min-height: 420px;
 
   border: 1px solid var(--border);
-  border-radius: 13px;
+  border-radius: var(--ask-radius-lg);
 
   background: var(--surface);
 }
