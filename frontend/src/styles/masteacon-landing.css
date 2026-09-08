@@ -95,22 +95,67 @@
 .masteacon-landing[data-reveal="ready"] .masteacon-landing-hero-copy,
 .masteacon-landing[data-reveal="ready"] .reveal {
   opacity: 0;
-  transform: translateY(24px);
+  transform: translateY(28px) scale(0.985);
   transition:
-    opacity 600ms cubic-bezier(0.16, 1, 0.3, 1),
-    transform 600ms cubic-bezier(0.16, 1, 0.3, 1);
+    opacity 650ms cubic-bezier(0.16, 1, 0.3, 1),
+    transform 650ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .masteacon-landing[data-reveal="ready"] .masteacon-landing-hero-copy.is-visible,
 .masteacon-landing[data-reveal="ready"] .reveal.is-visible {
   opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+/* ---------- Staggered children within a revealed section ---------- */
+
+.masteacon-landing[data-reveal="ready"] .masteacon-features-grid > *,
+.masteacon-landing[data-reveal="ready"] .masteacon-how-grid > *,
+.masteacon-landing[data-reveal="ready"] .masteacon-trust-list > * {
+  opacity: 0;
+  transform: translateY(16px);
+  transition:
+    opacity 500ms cubic-bezier(0.16, 1, 0.3, 1),
+    transform 500ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.masteacon-landing[data-reveal="ready"] .reveal.is-visible .masteacon-features-grid > *,
+.masteacon-landing[data-reveal="ready"] .reveal.is-visible .masteacon-how-grid > *,
+.masteacon-landing[data-reveal="ready"] .reveal.is-visible .masteacon-trust-list > * {
+  opacity: 1;
   transform: translateY(0);
+}
+
+.masteacon-landing[data-reveal="ready"] .masteacon-features-grid > *:nth-child(1),
+.masteacon-landing[data-reveal="ready"] .masteacon-how-grid > *:nth-child(1),
+.masteacon-landing[data-reveal="ready"] .masteacon-trust-list > *:nth-child(1) {
+  transition-delay: 60ms;
+}
+
+.masteacon-landing[data-reveal="ready"] .masteacon-features-grid > *:nth-child(2),
+.masteacon-landing[data-reveal="ready"] .masteacon-how-grid > *:nth-child(2),
+.masteacon-landing[data-reveal="ready"] .masteacon-trust-list > *:nth-child(2) {
+  transition-delay: 140ms;
+}
+
+.masteacon-landing[data-reveal="ready"] .masteacon-features-grid > *:nth-child(3),
+.masteacon-landing[data-reveal="ready"] .masteacon-how-grid > *:nth-child(3),
+.masteacon-landing[data-reveal="ready"] .masteacon-trust-list > *:nth-child(3) {
+  transition-delay: 220ms;
+}
+
+.masteacon-landing[data-reveal="ready"] .masteacon-features-grid > *:nth-child(4),
+.masteacon-landing[data-reveal="ready"] .masteacon-trust-list > *:nth-child(4) {
+  transition-delay: 300ms;
 }
 
 @media (prefers-reduced-motion: reduce) {
   .masteacon-landing-ambient,
   .masteacon-landing-hero-copy,
-  .reveal {
+  .reveal,
+  .masteacon-features-grid > *,
+  .masteacon-how-grid > *,
+  .masteacon-trust-list > * {
     animation: none !important;
     opacity: 1 !important;
     transform: none !important;
@@ -214,6 +259,19 @@
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   box-shadow: var(--shadow-sm);
+  transition: min-height 250ms ease, box-shadow 250ms ease, background 250ms ease;
+}
+
+.masteacon-landing-header.is-scrolled {
+  min-height: 54px;
+  background: color-mix(in srgb, var(--landing-surface-raised) 94%, transparent);
+  box-shadow: var(--shadow-md);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .masteacon-landing-header {
+    transition: none;
+  }
 }
 
 .masteacon-landing-brand {
@@ -417,6 +475,9 @@
 /* ---------- Hero mockup (the single product visual on the page) ---------- */
 
 .masteacon-landing-hero-mockup {
+  --tilt-x: 0;
+  --tilt-y: 0;
+
   width: min(440px, 100%);
   margin: 0 auto;
   border-radius: var(--radius-lg);
@@ -424,6 +485,16 @@
   background: var(--landing-surface-raised);
   box-shadow: var(--shadow-lg);
   overflow: hidden;
+  transform: perspective(900px) rotateX(calc(var(--tilt-y) * 1deg)) rotateY(calc(var(--tilt-x) * 1deg));
+  transition: transform 200ms ease-out;
+  will-change: transform;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .masteacon-landing-hero-mockup {
+    transform: none !important;
+    transition: none;
+  }
 }
 
 .masteacon-landing-hero-mockup-bar {
@@ -816,42 +887,77 @@
   gap: 10px;
 }
 
-.masteacon-faq-list details {
-  padding: 18px 20px;
+.masteacon-faq-item {
   border-radius: var(--radius-md);
   border: 1px solid var(--landing-border);
   background: var(--landing-surface-raised);
+  transition: border-color 200ms ease;
 }
 
-.masteacon-faq-list summary {
+.masteacon-faq-item.is-open {
+  border-color: var(--landing-amber);
+}
+
+.masteacon-faq-trigger {
+  width: 100%;
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 16px;
+  padding: 18px 20px;
   cursor: pointer;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
   font-weight: 600;
   font-size: 15px;
-  list-style: none;
+  text-align: left;
 }
 
-.masteacon-faq-list summary::-webkit-details-marker {
-  display: none;
-}
-
-.masteacon-faq-list summary i {
+.masteacon-faq-trigger i {
+  flex-shrink: 0;
   font-style: normal;
   color: var(--landing-text-muted);
-  transition: transform 200ms ease;
+  transition: transform 250ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.masteacon-faq-list details[open] summary i {
+.masteacon-faq-item.is-open .masteacon-faq-trigger i {
   transform: rotate(45deg);
+  color: var(--landing-amber);
 }
 
-.masteacon-faq-list p {
-  margin: 12px 0 0;
+:root[data-theme="dark"] .masteacon-faq-item.is-open .masteacon-faq-trigger i {
+  color: var(--landing-amber-light);
+}
+
+.masteacon-faq-panel {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 300ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.masteacon-faq-item.is-open .masteacon-faq-panel {
+  grid-template-rows: 1fr;
+}
+
+.masteacon-faq-panel-inner {
+  overflow: hidden;
+  min-height: 0;
+}
+
+.masteacon-faq-panel-inner p {
+  margin: 0 20px 18px;
   font-size: 14px;
   line-height: 1.6;
   color: var(--landing-text-muted);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .masteacon-faq-panel,
+  .masteacon-faq-trigger i {
+    transition: none;
+  }
 }
 
 /* ---------- Final CTA ---------- */
