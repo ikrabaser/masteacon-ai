@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 
 import { ChatIcon, CheckIcon, FolderIcon, MenuIcon, SearchIcon, SparkleIcon, XIcon } from "../components/icons";
@@ -32,6 +32,60 @@ export function LandingPage() {
   }, [copy.seo.description, copy.seo.title]);
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
+  const [openFaq, setOpenFaq] = useState<Set<number>>(new Set());
+  const mockupRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function onScroll() {
+      setIsScrolled(window.scrollY > 24);
+    }
+
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  useEffect(() => {
+    const mockup = mockupRef.current;
+    if (!mockup) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    if (window.matchMedia("(hover: none)").matches) return;
+
+    function onMouseMove(event: MouseEvent) {
+      const rect = mockup!.getBoundingClientRect();
+      const px = (event.clientX - rect.left) / rect.width - 0.5;
+      const py = (event.clientY - rect.top) / rect.height - 0.5;
+
+      mockup!.style.setProperty("--tilt-x", (px * 6).toFixed(2));
+      mockup!.style.setProperty("--tilt-y", (py * -6).toFixed(2));
+    }
+
+    function onMouseLeave() {
+      mockup!.style.setProperty("--tilt-x", "0");
+      mockup!.style.setProperty("--tilt-y", "0");
+    }
+
+    mockup.addEventListener("mousemove", onMouseMove);
+    mockup.addEventListener("mouseleave", onMouseLeave);
+
+    return () => {
+      mockup.removeEventListener("mousemove", onMouseMove);
+      mockup.removeEventListener("mouseleave", onMouseLeave);
+    };
+  }, []);
+
+  function toggleFaq(index: number) {
+    setOpenFaq((current) => {
+      const next = new Set(current);
+      if (next.has(index)) {
+        next.delete(index);
+      } else {
+        next.add(index);
+      }
+      return next;
+    });
+  }
 
   useEffect(() => {
     const root = document.querySelector<HTMLElement>(".masteacon-landing");
@@ -78,7 +132,13 @@ export function LandingPage() {
       <div className="masteacon-landing-ambient masteacon-landing-ambient-one" />
       <div className="masteacon-landing-ambient masteacon-landing-ambient-two" />
 
-      <header className="masteacon-landing-header">
+      <header
+        className={
+          isScrolled
+            ? "masteacon-landing-header is-scrolled"
+            : "masteacon-landing-header"
+        }
+      >
         <Link to="/" className="masteacon-landing-brand" aria-label="Masteacon">
           <Logo size={32} withWordmark />
         </Link>
@@ -191,7 +251,10 @@ export function LandingPage() {
         </div>
 
         <div className="masteacon-landing-hero-visual">
-          <div className="masteacon-landing-hero-mockup">
+          <div
+            className="masteacon-landing-hero-mockup"
+            ref={mockupRef}
+          >
             <div className="masteacon-landing-hero-mockup-bar">
               <span />
               <span />
@@ -296,15 +359,43 @@ export function LandingPage() {
         </div>
 
         <div className="masteacon-faq-list">
-          {copy.faq.items.map((item) => (
-            <details key={item.question}>
-              <summary>
-                <span>{item.question}</span>
-                <i>+</i>
-              </summary>
-              <p>{item.answer}</p>
-            </details>
-          ))}
+          {copy.faq.items.map((item, index) => {
+            const isOpen = openFaq.has(index);
+            const panelId = `masteacon-faq-panel-${index}`;
+
+            return (
+              <div
+                key={item.question}
+                className={
+                  isOpen
+                    ? "masteacon-faq-item is-open"
+                    : "masteacon-faq-item"
+                }
+              >
+                <button
+                  type="button"
+                  className="masteacon-faq-trigger"
+                  aria-expanded={isOpen}
+                  aria-controls={panelId}
+                  onClick={() => toggleFaq(index)}
+                >
+                  <span>{item.question}</span>
+                  <i aria-hidden="true">+</i>
+                </button>
+
+                <div
+                  className="masteacon-faq-panel"
+                  id={panelId}
+                  role="region"
+                  aria-hidden={!isOpen}
+                >
+                  <div className="masteacon-faq-panel-inner">
+                    <p>{item.answer}</p>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
         </div>
       </section>
 
